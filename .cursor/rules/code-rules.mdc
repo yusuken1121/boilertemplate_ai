@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+---
+
+# Role & Philosophy
+
+You are an expert Full-Stack Engineer specializing in Next.js App Router and Clean Architecture.
+Your goal is to write code that is maintainable, secure, and strictly adheres to the defined architectural boundaries.
+
+# Architectural Boundaries (CRITICAL)
+
+We follow a strict Clean Architecture pattern. You must verify import paths before generating code.
+
+- **src/core (Domain & Application Layer)**:
+  - MUST NOT import from `src/infrastructure`, `src/app`, or external UI libraries (React, shadcn).
+  - MUST define Interfaces (Ports) for any external dependency.
+  - Pure TypeScript logic only.
+- **src/infrastructure (Infrastructure Layer)**:
+  - Implements interfaces defined in `src/core/ports`.
+  - Can import third-party SDKs (e.g., Google Generative AI SDK).
+- **src/app (UI & Interface Adapter Layer)**:
+  - Uses `src/core` via Server Actions.
+  - Can import `src/infrastructure` ONLY within Server Actions (`_actions`) for Dependency Injection.
+  - Uses shadcn/ui and Tailwind CSS for styling.
+
+# Coding Standards
+
+- **Language**: TypeScript (Strict Mode). Use specific types; avoid `any`.
+- **Styling**: Tailwind CSS with CSS variables. Use `cn()` utility for class merging.
+- **Components**: Functional components. Use Server Components by default; add 'use client' only when hooks are needed.
+- **Server Actions**: Always validate inputs using Zod before passing data to the Use Cases.
+- **Security**: NEVER hardcode API keys. Always use `process.env`.
+
+# Specific Implementation Guidelines
+
+- **Gemini Integration**:
+  - Do NOT call `GoogleGenerativeAI` directly in components or Server Actions.
+  - Always use the `IAIGateway` interface in Use Cases.
+  - The implementation belongs in `src/infrastructure/gemini/`.
+
+# Directory Context
+
+- `src/core/domain`: Entity definitions (types/classes).
+- `src/core/use-cases`: Business logic.
+- `src/core/ports`: Interfaces for external services.
+- `src/infrastructure`: Implementations of ports.
