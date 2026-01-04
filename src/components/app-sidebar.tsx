@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { APP_CONFIG } from "@/constants/app-config";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -122,9 +123,11 @@ export function AppSidebar() {
             N
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-bold text-lg tracking-tight">News2Flow</span>
+            <span className="font-bold text-lg tracking-tight">
+              {APP_CONFIG.APP_NAME}
+            </span>
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              Generator
+              {APP_CONFIG.APP_DESCRIPTION}
             </span>
           </div>
         </div>
