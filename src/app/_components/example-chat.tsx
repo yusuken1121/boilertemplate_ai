@@ -1,35 +1,36 @@
 /**
  * Example Chat Component
- * 
+ *
  * This demonstrates how to use the Server Actions from a Client Component.
  * This is for reference only - showing the complete flow from UI to Core.
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { sendMessageAction, createChatMessage } from '@/app/_actions/chat';
-import type { Message } from '@/core/domain/message.entity';
+import { useState } from "react";
+import { sendMessageAction } from "@/app/_actions/chat";
+import { createChatMessage } from "@/lib/chat-utils";
+import type { Message } from "@/core/domain/message.entity";
 
 export function ExampleChatComponent() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingResponse, setStreamingResponse] = useState('');
+  const [streamingResponse, setStreamingResponse] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!input.trim()) return;
 
     setIsLoading(true);
-    setStreamingResponse('');
+    setStreamingResponse("");
 
     // Create user message
-    const userMessage = createChatMessage('user', input);
+    const userMessage = createChatMessage("user", input);
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    setInput('');
+    setInput("");
 
     try {
       // Call the Server Action
@@ -43,7 +44,7 @@ export function ExampleChatComponent() {
 
       // Read the stream
       const reader = stream.getReader();
-      let fullResponse = '';
+      let fullResponse = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -56,12 +57,12 @@ export function ExampleChatComponent() {
       }
 
       // Add assistant message to history
-      const assistantMessage = createChatMessage('assistant', fullResponse);
+      const assistantMessage = createChatMessage("assistant", fullResponse);
       setMessages([...updatedMessages, assistantMessage]);
-      setStreamingResponse('');
+      setStreamingResponse("");
     } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      console.error("Error sending message:", error);
+      alert("Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +75,13 @@ export function ExampleChatComponent() {
           <div
             key={message.id}
             className={`p-4 rounded-lg ${
-              message.role === 'user'
-                ? 'bg-blue-100 ml-auto max-w-[80%]'
-                : 'bg-gray-100 mr-auto max-w-[80%]'
+              message.role === "user"
+                ? "bg-blue-100 ml-auto max-w-[80%]"
+                : "bg-gray-100 mr-auto max-w-[80%]"
             }`}
           >
             <div className="font-semibold mb-1">
-              {message.role === 'user' ? 'You' : 'AI'}
+              {message.role === "user" ? "You" : "AI"}
             </div>
             <div className="whitespace-pre-wrap">{message.content}</div>
           </div>
@@ -108,7 +109,7 @@ export function ExampleChatComponent() {
           disabled={isLoading || !input.trim()}
           className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading ? "Sending..." : "Send"}
         </button>
       </form>
     </div>
