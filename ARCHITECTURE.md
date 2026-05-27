@@ -7,7 +7,7 @@ This document describes the complete Clean Architecture implementation for the c
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        UI Layer                              │
-│  src/app/_components/example-chat.tsx                       │
+│  src/app/_components/chat-interface.tsx                     │
 │  (React Components - User Interface)                        │
 └────────────────────┬────────────────────────────────────────┘
                      │
@@ -62,7 +62,7 @@ src/
     ├── _actions/
     │   └── chat.ts                 # Server Actions (Composition Root)
     └── _components/
-        └── example-chat.tsx        # Example UI component
+        └── chat-interface.tsx      # Active UI component
 ```
 
 ## 🔄 Data Flow
