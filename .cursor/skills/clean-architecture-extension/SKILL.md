@@ -73,6 +73,8 @@ Use this order every time:
 
 ### Step 1 — Entity
 
+Define the data shape **and domain validation** in `src/core/domain/`:
+
 ```typescript
 // src/core/domain/feedback.entity.ts
 export interface Feedback {
@@ -81,7 +83,18 @@ export interface Feedback {
   comments: string
   createdAt: Date
 }
+
+export function assertValidFeedback(
+  input: Omit<Feedback, "id" | "createdAt">,
+): void {
+  if (input.rating < 1 || input.rating > 5) {
+    throw new Error("Rating must be between 1 and 5")
+  }
+}
 ```
+
+HTTP/format checks (email shape, required fields) belong in **Zod** at the Route Handler.  
+Business rules (rating range, message length) belong in **domain validation** called from the Use Case.
 
 ### Step 2 — Port
 
@@ -98,9 +111,12 @@ export interface IFeedbackRepository {
 
 ```typescript
 // src/core/use-cases/submit-feedback.use-case.ts
+import { assertValidFeedback } from "../domain/feedback.entity"
+
 export class SubmitFeedbackUseCase {
   constructor(private readonly repository: IFeedbackRepository) {}
   async execute(input: Omit<Feedback, "id" | "createdAt">): Promise<Feedback> {
+    assertValidFeedback(input)
     const feedback = {
       id: crypto.randomUUID(),
       createdAt: new Date(),

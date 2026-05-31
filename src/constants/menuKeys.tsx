@@ -1,9 +1,10 @@
 import React from "react"
 import { PATH } from "@/constants/path"
-import { LogOutIcon, MessageSquare, Settings } from "lucide-react"
+import { LogOutIcon, Mail, MessageSquare, Settings } from "lucide-react"
 
 export const MENU_KEYS = {
   CHAT: "chat",
+  CONTACT: "contact",
   SETTINGS: "settings",
   LOGOUT: "logout",
 } as const
@@ -25,6 +26,12 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
     icon: <MessageSquare className="h-5 w-5" />,
     activeColor: "text-blue-600 dark:text-blue-400",
   },
+  [MENU_KEYS.CONTACT]: {
+    label: "Contact",
+    path: PATH.CONTACT,
+    icon: <Mail className="h-5 w-5" />,
+    activeColor: "text-green-600 dark:text-green-400",
+  },
   [MENU_KEYS.SETTINGS]: {
     label: "Settings",
     path: PATH.SETTINGS,
@@ -39,7 +46,7 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
   },
 }
 
-export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT]
+export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT, MENU_KEYS.CONTACT]
 
 export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS]
 

@@ -6,7 +6,7 @@ import type {
 type NotionPageProperties = Record<string, unknown>
 
 export class NotionPropertyBuilder {
-  static build<TRecord extends Record<string, unknown>>(
+  static build<TRecord>(
     record: TRecord,
     fields: Array<NotionFieldMapping<TRecord>>,
   ): NotionPageProperties {
@@ -24,12 +24,14 @@ export class NotionPropertyBuilder {
     return properties
   }
 
-  private static resolveValue<TRecord extends Record<string, unknown>>(
+  private static resolveValue<TRecord>(
     record: TRecord,
     field: NotionFieldMapping<TRecord>,
   ): unknown {
     const raw =
-      field.recordKey !== undefined ? record[field.recordKey] : undefined
+      field.recordKey !== undefined
+        ? (record as Record<string, unknown>)[field.recordKey as string]
+        : undefined
 
     if (field.transform) {
       return field.transform(raw, record)

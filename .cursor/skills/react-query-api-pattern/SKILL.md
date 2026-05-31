@@ -112,11 +112,11 @@ export function SomeForm() {
 
 ## Existing Examples
 
-| Feature         | Hook                     | Route         |
-| :-------------- | :----------------------- | :------------ |
-| Chat (stream)   | `useSendMessageStream`   | `/api/chat`   |
-| Chat (complete) | `useSendMessageComplete` | `/api/chat`   |
-| Notion write    | `useCreateNotionRecord`  | `/api/notion` |
+| Feature         | Hook                     | Route         | UI              |
+| :-------------- | :----------------------- | :------------ | :-------------- |
+| Chat (stream)   | `useSendMessageStream`   | `/api/chat`   | `ChatInterface` |
+| Chat (complete) | `useSendMessageComplete` | `/api/chat`   | —               |
+| Notion write    | `useCreateNotionRecord`  | `/api/notion` | `ContactForm`   |
 
 ## Related Skills
 

@@ -6,10 +6,8 @@
  */
 
 import { GoogleGenerativeAI, type Content } from "@google/generative-ai"
-import type {
-  IAIGateway,
-  AIGenerateOptions,
-} from "@/core/ports/ai-gateway.port"
+import type { IAIGateway } from "@/core/ports/ai-gateway.port"
+import type { AIGenerateOptions } from "@/core/domain/ai-generate-options.vo"
 import type { Message } from "@/core/domain/message.entity"
 import { GeminiClientFactory } from "./gemini.client"
 

@@ -89,7 +89,10 @@ src/
 │   └── global-header.tsx
 │
 ├── core/                       # Pure TypeScript — no React, Next.js, or SDKs
-│   ├── domain/                 # Entities (Message, NotionPageRef, …)
+│   ├── domain/                 # Entities, value objects, domain validation
+│   │   ├── message.entity.ts
+│   │   ├── ai-generate-options.vo.ts
+│   │   └── message.validation.ts
 │   ├── ports/                  # Interfaces (IAIGateway, INotionRecordWriter, …)
 │   └── use-cases/              # Business logic (SendMessageUseCase, …)
 │

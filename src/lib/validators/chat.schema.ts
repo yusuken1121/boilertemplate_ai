@@ -9,7 +9,8 @@ const messageSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
-export const sendMessageInputSchema = z.object({
+/** HTTP request schema for POST /api/chat (includes transport flag `stream`) */
+export const sendMessageRequestSchema = z.object({
   messages: z.array(messageSchema).min(1, "At least one message is required"),
   options: z
     .object({
@@ -27,5 +28,8 @@ export const chatFormSchema = z.object({
   [CHAT_FORM_KEYS.MESSAGE]: z.string().min(1),
 })
 
-export type SendMessageInput = z.infer<typeof sendMessageInputSchema>
+export type SendMessageRequest = z.infer<typeof sendMessageRequestSchema>
 export type ChatFormValues = z.infer<typeof chatFormSchema>
+
+/** @deprecated Use sendMessageRequestSchema */
+export const sendMessageInputSchema = sendMessageRequestSchema

@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
 import { createGeminiGateway } from "@/infrastructure/gemini"
 import { SendMessageUseCase } from "@/core/use-cases/send-message.use-case"
-import { sendMessageInputSchema } from "@/lib/validators/chat.schema"
+import { sendMessageRequestSchema } from "@/lib/validators/chat.schema"
+import { handleRouteError } from "@/lib/route-error"
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const validatedInput = sendMessageInputSchema.parse(body)
+    const { stream, messages, options } = sendMessageRequestSchema.parse(body)
 
-    const aiGateway = createGeminiGateway()
-    const sendMessageUseCase = new SendMessageUseCase(aiGateway)
+    const useCase = new SendMessageUseCase(createGeminiGateway())
 
-    if (validatedInput.stream) {
-      const { stream } = await sendMessageUseCase.execute({
-        messages: validatedInput.messages,
-        options: validatedInput.options,
+    if (stream) {
+      const { stream: responseStream } = await useCase.execute({
+        messages,
+        options,
       })
 
-      return new Response(stream, {
+      return new Response(responseStream, {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Transfer-Encoding": "chunked",
@@ -26,27 +25,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const text = await sendMessageUseCase.executeNonStreaming({
-      messages: validatedInput.messages,
-      options: validatedInput.options,
-    })
+    const text = await useCase.executeNonStreaming({ messages, options })
     return NextResponse.json({ response: text })
   } catch (error) {
-    console.error("Error in /api/chat Route Handler:", error)
-
-    if (error instanceof z.ZodError) {
-      const errorMessage = error.issues.map((e) => e.message).join(", ")
-      return NextResponse.json(
-        { error: `Validation error: ${errorMessage}` },
-        { status: 400 },
-      )
-    }
-
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Internal Server Error",
-      },
-      { status: 500 },
-    )
+    return handleRouteError(error, "/api/chat Route Handler")
   }
 }

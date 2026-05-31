@@ -10,7 +10,7 @@ import { NotionPropertyBuilder } from "./notion-property.builder"
 import { NotionWriteError } from "./notion-write.error"
 
 export class ConfigurableNotionGateway<
-  TRecord extends Record<string, unknown>,
+  TRecord,
 > implements INotionRecordWriter<TRecord> {
   private readonly client: Client
 

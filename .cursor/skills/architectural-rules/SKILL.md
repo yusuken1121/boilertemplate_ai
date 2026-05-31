@@ -50,7 +50,19 @@ These rules are **mandatory**. Verify import paths before generating code.
 
 4. **Client → API Routes** — UI uses React Query hooks in `src/lib/api/queries/`.
 
-5. **Validate at the boundary** — Zod in Route Handlers, before Use Cases.
+5. **Validate at the boundary** — Zod in Route Handlers for HTTP/format. Domain validation functions in Use Cases for business rules.
+
+## Domain Layer Conventions
+
+| File pattern      | Purpose                                  | Example                        |
+| :---------------- | :--------------------------------------- | :----------------------------- |
+| `*.entity.ts`     | Data shape + domain validation           | `contact-submission.entity.ts` |
+| `*.vo.ts`         | Value objects (provider-agnostic config) | `ai-generate-options.vo.ts`    |
+| `*.validation.ts` | Shared domain rules                      | `message.validation.ts`        |
+
+## Ports
+
+Ports contain **interfaces only** — no implementation, no value objects. Import types from `domain/`.
 
 ## Coding Standards
 

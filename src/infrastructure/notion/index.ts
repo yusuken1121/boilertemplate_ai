@@ -16,8 +16,14 @@ export type {
  * Factory for Dependency Injection.
  * Composition Root (Route Handler) should call this — not Use Cases.
  */
-export function createNotionRecordWriter<
-  TRecord extends Record<string, unknown>,
->(config: NotionDatabaseConfig<TRecord>): INotionRecordWriter<TRecord> {
+export function createNotionRecordWriter<TRecord>(
+  config: NotionDatabaseConfig<TRecord>,
+): INotionRecordWriter<TRecord> {
+  if (!config.databaseId) {
+    throw new Error(
+      "Notion database ID is not configured. Set NOTION_CONTACT_DATABASE_ID.",
+    )
+  }
+
   return new ConfigurableNotionGateway(config)
 }

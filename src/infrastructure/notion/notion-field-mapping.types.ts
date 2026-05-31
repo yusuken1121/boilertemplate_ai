@@ -8,7 +8,7 @@ export type NotionFieldType =
   | "checkbox"
   | "url"
 
-export type NotionFieldMapping<TRecord extends Record<string, unknown>> = {
+export type NotionFieldMapping<TRecord> = {
   /** Omit when using transform-only fields (e.g. derived title). */
   recordKey?: keyof TRecord & string
   propertyName: string
@@ -16,7 +16,7 @@ export type NotionFieldMapping<TRecord extends Record<string, unknown>> = {
   transform?: (value: unknown, record: TRecord) => unknown
 }
 
-export type NotionDatabaseConfig<TRecord extends Record<string, unknown>> = {
+export type NotionDatabaseConfig<TRecord> = {
   databaseId: string
   fields: Array<NotionFieldMapping<TRecord>>
 }
