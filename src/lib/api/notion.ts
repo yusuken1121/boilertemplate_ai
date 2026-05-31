@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient"
-import type { ContactSubmission } from "@/infrastructure/notion/contact.config"
+import type { ContactSubmission } from "@/core/domain/contact-submission.entity"
 
 export interface NotionWriteResponse {
   success: boolean

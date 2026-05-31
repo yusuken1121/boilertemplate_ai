@@ -1,60 +1,40 @@
 ---
 name: clean-architecture-extension
-description: "Extend the Clean Architecture template by adding new AI gateways or generating end-to-end features (Entity, Port, Use Case, Adapter, Server Action, and UI Component)."
+description: >-
+  Extend the boilerplate by adding AI gateways or full features (Entity, Port,
+  Use Case, Adapter, Route Handler, React Query hook, UI). Use when building
+  new functionality end-to-end.
 ---
 
-# Clean Architecture Extension Skill
+# Clean Architecture Extension
 
-This skill outlines how to scale, customize, and extend the chat application following strict **Clean Architecture** boundaries and SOLID coding standards.
+Follow strict layer boundaries. Request flow:
 
----
-
-## 📂 Architecture & Directory Structure
-
-To extend this application, you must respect the directory boundaries:
-
-```text
-src/
-├── core/                           # Pure Domain & Application logic (No external I/O)
-│   ├── domain/                     # Entities (Pure TypeScript, no React/Next/SDKs)
-│   ├── ports/                      # Interfaces (Ports defining the contracts)
-│   └── use-cases/                  # Use Cases (Orchestrates Business Logic)
-│
-├── infrastructure/                  # Concrete Adapters (SDKs, database clients, API wrappers)
-│   ├── gemini/                     # Gemini Gateway
-│   └── notion/                     # Notion Gateway
-│
-└── app/                            # UI Components and Controllers
-    ├── _actions/                   # Server Actions (Composition Root / dependency injection)
-    └── _components/                # React / Shadcn UI components
+```
+UI → React Query → /api/* → Use Case → Infrastructure
 ```
 
----
+## Adding a New AI Provider
 
-## 🤖 1. Adding a New AI Provider (AI Gateway)
+Zero changes to Core Use Cases — swap the Infrastructure adapter only.
 
-Adding a new AI provider (like OpenAI or Anthropic Claude) requires zero changes to the Core business logic or use cases.
+### 1. Implement the Port
 
-### Step 1: Implement the Port Interface
-Create a new folder under `src/infrastructure/` (e.g., `src/infrastructure/openai/`) and write an adapter that implements `IAIGateway` (defined in `src/core/ports/ai-gateway.port.ts`).
+Create `src/infrastructure/openai/openai.gateway.ts` implementing `IAIGateway`:
 
 ```typescript
 import type { IAIGateway } from "@/core/ports/ai-gateway.port";
 import type { Message } from "@/core/domain/message.entity";
 
 export class OpenAIGateway implements IAIGateway {
-  async generate(messages: Message[], options?: any): Promise<string> {
-    // Concrete call to OpenAI SDK
-  }
-  
-  async generateStream(messages: Message[], options?: any): Promise<ReadableStream<string>> {
-    // Stream response call to OpenAI SDK
-  }
+  async generate(messages: Message[], options?) { /* ... */ }
+  async generateStream(messages: Message[], options?) { /* ... */ }
 }
 ```
 
-### Step 2: Create a Factory Export
-Expose a clean instantiator function in `src/infrastructure/openai/index.ts`:
+### 2. Factory export
+
+`src/infrastructure/openai/index.ts`:
 
 ```typescript
 export function createOpenAIGateway(): IAIGateway {
@@ -62,23 +42,32 @@ export function createOpenAIGateway(): IAIGateway {
 }
 ```
 
-### Step 3: Swap Providers in the Composition Root
-Update the Server Action in `src/app/_actions/chat.ts` to instantiate the new gateway. The rest of the pipeline (use cases, UI layers) continues to work without edits.
+### 3. Swap in the Composition Root
+
+In `src/app/api/chat/route.ts`:
 
 ```diff
 -const aiGateway = createGeminiGateway();
 +const aiGateway = createOpenAIGateway();
- const sendMessageUseCase = new SendMessageUseCase(aiGateway);
 ```
 
 ---
 
-## 🚀 2. Generating a Complete New Feature
+## Adding a Complete New Feature
 
-When creating a new feature (e.g., "User Feedback Form"), use this step-by-step master checklist:
+Use this order every time:
 
-### Step 1: Create the Domain Entity
-Define the pure data shape inside `src/core/domain/` using TypeScript. Avoid React, Next.js, or database imports.
+| Step | Layer | Path |
+| :--- | :---- | :--- |
+| 1 | Entity | `src/core/domain/` |
+| 2 | Port | `src/core/ports/` |
+| 3 | Use Case | `src/core/use-cases/` |
+| 4 | Infrastructure adapter | `src/infrastructure/` |
+| 5 | Route Handler (Zod + DI) | `src/app/api/<feature>/route.ts` |
+| 6 | API wrapper + React Query hook | `src/lib/api/` + `src/lib/api/queries/` |
+| 7 | UI component | `src/app/_components/` |
+
+### Step 1 — Entity
 
 ```typescript
 // src/core/domain/feedback.entity.ts
@@ -90,63 +79,45 @@ export interface Feedback {
 }
 ```
 
-### Step 2: Define the Port (Interface)
-Define contracts/interfaces for any external actions (writing to a DB, sending email) inside `src/core/ports/`.
+### Step 2 — Port
 
 ```typescript
 // src/core/ports/feedback-repository.port.ts
-import { Feedback } from "../domain/feedback.entity";
+import type { Feedback } from "../domain/feedback.entity";
 
 export interface IFeedbackRepository {
   save(feedback: Feedback): Promise<void>;
 }
 ```
 
-### Step 3: Write the Use Case
-Implement the core business logic or orchestration inside `src/core/use-cases/`. Depend purely on the interface port.
+### Step 3 — Use Case
 
 ```typescript
 // src/core/use-cases/submit-feedback.use-case.ts
-import { Feedback } from "../domain/feedback.entity";
-import { IFeedbackRepository } from "../ports/feedback-repository.port";
-
 export class SubmitFeedbackUseCase {
   constructor(private readonly repository: IFeedbackRepository) {}
-
   async execute(input: Omit<Feedback, "id" | "createdAt">): Promise<Feedback> {
-    const feedback: Feedback = {
-      id: Math.random().toString(), // Or uuid v4
-      createdAt: new Date(),
-      ...input,
-    };
+    const feedback = { id: crypto.randomUUID(), createdAt: new Date(), ...input };
     await this.repository.save(feedback);
     return feedback;
   }
 }
 ```
 
-### Step 4: Implement the Infrastructure Adapter
-Write the concrete implementation of your Port inside `src/infrastructure/` (e.g., writing to Notion or a database).
+### Step 4 — Infrastructure adapter
 
 ```typescript
 // src/infrastructure/database/firestore-feedback.repository.ts
-import { IFeedbackRepository } from "@/core/ports/feedback-repository.port";
-import { Feedback } from "@/core/domain/feedback.entity";
-
 export class FirestoreFeedbackRepository implements IFeedbackRepository {
-  async save(feedback: Feedback): Promise<void> {
-    // Write code to write feedback into Firestore database
-  }
+  async save(feedback: Feedback): Promise<void> { /* ... */ }
 }
 ```
 
-### Step 5: Compose and Validate inside the Server Action
-Create a Server Action in `src/app/_actions/` to act as the Composition Root. Validate client input using **Zod** first.
+### Step 5 — Route Handler
 
 ```typescript
-// src/app/_actions/feedback.ts
-"use server";
-
+// src/app/api/feedback/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { FirestoreFeedbackRepository } from "@/infrastructure/database/firestore-feedback.repository";
 import { SubmitFeedbackUseCase } from "@/core/use-cases/submit-feedback.use-case";
@@ -156,16 +127,25 @@ const feedbackSchema = z.object({
   comments: z.string().min(5),
 });
 
-export async function submitFeedbackAction(formData: any) {
-  const validated = feedbackSchema.parse(formData);
-  
-  // Dependency Injection (Composition Root)
-  const repo = new FirestoreFeedbackRepository();
-  const useCase = new SubmitFeedbackUseCase(repo);
-  
-  return await useCase.execute(validated);
+export async function POST(req: NextRequest) {
+  const validated = feedbackSchema.parse(await req.json());
+  const useCase = new SubmitFeedbackUseCase(new FirestoreFeedbackRepository());
+  const result = await useCase.execute(validated);
+  return NextResponse.json(result);
 }
 ```
 
-### Step 6: Build the UI Component
-Construct user interface components under `src/app/_components/` using **shadcn/ui** libraries and tailwind classes. Retrieve actions or state using normal React handles.
+### Step 6 — Client API + hook
+
+See [react-query-api-pattern](../react-query-api-pattern/SKILL.md).
+
+### Step 7 — UI component
+
+Build under `src/app/_components/` using shadcn/ui. Call the React Query hook — never the Use Case directly.
+
+## Related Skills
+
+- [architecture-overview](../architecture-overview/SKILL.md)
+- [architectural-rules](../architectural-rules/SKILL.md)
+- [react-query-api-pattern](../react-query-api-pattern/SKILL.md)
+- [sidebar-management](../sidebar-management/SKILL.md)

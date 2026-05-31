@@ -22,9 +22,10 @@ The Notion module is an **Infrastructure adapter** implementing a Core Port.
 
 ### 1. Define the record type
 
-Prefer `src/core/domain/` for types shared with the client. Infrastructure config can reference it.
+Prefer `src/core/domain/` for types shared with the client.
 
 ```typescript
+// src/core/domain/contact-submission.entity.ts
 export interface ContactSubmission extends Record<string, unknown> {
   name: string;
   email: string;
@@ -38,6 +39,7 @@ export interface ContactSubmission extends Record<string, unknown> {
 
 ```typescript
 import type { NotionDatabaseConfig } from "./notion-field-mapping.types";
+import type { ContactSubmission } from "@/core/domain/contact-submission.entity";
 
 export const contactNotionConfig: NotionDatabaseConfig<ContactSubmission> = {
   databaseId: process.env.NOTION_CONTACT_DATABASE_ID || "",

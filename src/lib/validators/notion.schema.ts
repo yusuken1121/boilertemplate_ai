@@ -1,10 +1,9 @@
-import { FORM_KEYS } from "@/constants/labels"
-import z from "zod"
+import z from "zod";
 
-export const contactNotionSchema = z.object({
-  [FORM_KEYS.NAME]: z.string().min(1),
-  [FORM_KEYS.EMAIL]: z.string().email(),
-  message: z.string().min(1),
-})
+export const contactSubmissionSchema = z.object({
+  name: z.string().min(1, "お名前を入力してください"),
+  email: z.email("正しいメールアドレスを入力してください"),
+  message: z.string().min(1, "メッセージを入力してください"),
+});
 
-export type ContactNotionValues = z.infer<typeof contactNotionSchema>
+export type ContactSubmissionInput = z.infer<typeof contactSubmissionSchema>;

@@ -3,7 +3,7 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query"
 import { notionApi, NotionWriteResponse } from "../notion"
-import type { ContactSubmission } from "@/infrastructure/notion/contact.config"
+import type { ContactSubmission } from "@/core/domain/contact-submission.entity"
 
 export const notionKeys = {
   all: ["notion"] as const,

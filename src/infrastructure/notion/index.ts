@@ -14,7 +14,7 @@ export type {
 
 /**
  * Factory for Dependency Injection.
- * Composition Root (Server Action / Route Handler) should call this — not Use Cases.
+ * Composition Root (Route Handler) should call this — not Use Cases.
  */
 export function createNotionRecordWriter<TRecord extends Record<string, unknown>>(
   config: NotionDatabaseConfig<TRecord>,

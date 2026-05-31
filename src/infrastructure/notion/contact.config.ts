@@ -1,10 +1,5 @@
 import type { NotionDatabaseConfig } from "./notion-field-mapping.types"
-
-export interface ContactSubmission extends Record<string, unknown> {
-  name: string
-  email: string
-  message: string
-}
+import type { ContactSubmission } from "@/core/domain/contact-submission.entity"
 
 export const contactNotionConfig: NotionDatabaseConfig<ContactSubmission> = {
   databaseId: process.env.NOTION_CONTACT_DATABASE_ID || "",
