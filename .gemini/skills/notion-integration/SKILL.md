@@ -129,3 +129,88 @@ Run the test runner to verify coverage:
 ```bash
 pnpm test
 ```
+
+---
+
+## ⚡ Client-Side Optimization with React Query & Route Handlers
+
+To enable safe, non-blocking inserts into Notion databases directly from React Client Components (without exposing secret backend keys like `NOTION_TOKEN`), wrap your gateway using standard Next.js App Router Route Handlers and TanStack Query `useMutation` custom hooks.
+
+### 1. API Route Handler (Composition Root)
+Expose a secure API Route handler at `src/app/api/notion/route.ts`:
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { createNotionRecordWriter } from "@/infrastructure/notion";
+import { contactNotionConfig, ContactSubmission } from "@/infrastructure/notion/contact.config";
+import { CreateNotionRecordUseCase } from "@/core/use-cases/create-notion-record.use-case";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    
+    // Inject and execute Use Case
+    const writer = createNotionRecordWriter<ContactSubmission>(contactNotionConfig);
+    const useCase = new CreateNotionRecordUseCase<ContactSubmission>(writer);
+    const pageRef = await useCase.execute(body);
+
+    return NextResponse.json({ success: true, page: pageRef });
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+```
+
+### 2. Client API Client Wrapper
+Declare the endpoint mapping in `src/lib/api/notion.ts` using the customized `apiClient`:
+```typescript
+import { apiClient } from "./apiClient";
+import type { ContactSubmission } from "@/infrastructure/notion/contact.config";
+
+export const notionApi = {
+  createContactRecord: async (data: ContactSubmission) => {
+    return apiClient.post("/api/notion", data);
+  },
+};
+```
+
+### 3. React Query Custom Mutation Hook
+Create a clean custom mutation hook in `src/lib/api/queries/useNotion.ts`:
+```typescript
+import { useMutation, UseMutationOptions } from "@tanstack/react-query";
+import { notionApi } from "../notion";
+import type { ContactSubmission } from "@/infrastructure/notion/contact.config";
+
+export const useCreateNotionRecord = (options?: UseMutationOptions<any, Error, ContactSubmission>) => {
+  return useMutation({
+    mutationFn: notionApi.createContactRecord,
+    ...options,
+  });
+};
+```
+
+### 4. Consumption in Front-End Form
+Instantiate the mutation in your Client Component. Use mutation states to manage active loading UI cleanly:
+```tsx
+"use client";
+
+import { useCreateNotionRecord } from "@/lib/api/queries/useNotion";
+
+export function ContactForm() {
+  const { mutate, isPending, isError, isSuccess } = useCreateNotionRecord();
+
+  const onSubmit = (data: any) => {
+    mutate(data);
+  };
+
+  return (
+    <form onSubmit={onSubmit}>
+      <button type="submit" disabled={isPending}>
+        {isPending ? "Submitting..." : "Send to Notion"}
+      </button>
+      {isSuccess && <p>Saved successfully to Notion database!</p>}
+      {isError && <p>Error saving to database.</p>}
+    </form>
+  );
+}
+```
