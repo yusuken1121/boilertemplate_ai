@@ -34,6 +34,10 @@ Before generating code, read:
 
 Cursor always-applied rules: [`.cursor/rules/code-rules.mdc`](.cursor/rules/code-rules.mdc)
 
+## Learning Guide
+
+Beginner-friendly walkthrough (Japanese): [docs/beginner-architecture-guide.md](docs/beginner-architecture-guide.md)
+
 ## Quick Start
 
 ```bash
