@@ -1,21 +1,21 @@
-import React from "react";
-import { PATH } from "@/constants/path";
-import { LogOutIcon, MessageSquare, Settings } from "lucide-react";
+import React from "react"
+import { PATH } from "@/constants/path"
+import { LogOutIcon, MessageSquare, Settings } from "lucide-react"
 
 export const MENU_KEYS = {
   CHAT: "chat",
   SETTINGS: "settings",
   LOGOUT: "logout",
-} as const;
+} as const
 
-export type MenuKey = (typeof MENU_KEYS)[keyof typeof MENU_KEYS];
+export type MenuKey = (typeof MENU_KEYS)[keyof typeof MENU_KEYS]
 
 export interface SidebarItemConfig {
-  label: string;
-  path?: string;
-  functionality?: () => void | Promise<void>;
-  icon: React.ReactNode;
-  activeColor?: string;
+  label: string
+  path?: string
+  functionality?: () => void | Promise<void>
+  icon: React.ReactNode
+  activeColor?: string
 }
 
 export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
@@ -33,16 +33,16 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
   [MENU_KEYS.LOGOUT]: {
     label: "Logout",
     functionality: async () => {
-      alert("Logout functionality called");
+      alert("Logout functionality called")
     },
     icon: <LogOutIcon />,
   },
-};
+}
 
-export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT];
+export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT]
 
-export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS];
+export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS]
 
-export const adminSidebar: MenuKey[] = [];
+export const adminSidebar: MenuKey[] = []
 
-export const footerSidebar: MenuKey[] = [MENU_KEYS.LOGOUT];
+export const footerSidebar: MenuKey[] = [MENU_KEYS.LOGOUT]

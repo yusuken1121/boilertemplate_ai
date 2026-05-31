@@ -1,7 +1,4 @@
-import {
-  useMutation,
-  UseMutationOptions,
-} from "@tanstack/react-query"
+import { useMutation, UseMutationOptions } from "@tanstack/react-query"
 import { chatApi } from "../chat"
 import type {
   PostChatMessageRequest,
@@ -19,8 +16,8 @@ type UseSendMessageCompleteOptions = UseMutationOptions<
 >
 
 /**
-   * AIアシスタントにメッセージを送信するカスタムフック（非ストリーミング）
-   */
+ * AIアシスタントにメッセージを送信するカスタムフック（非ストリーミング）
+ */
 export const useSendMessageComplete = (
   options?: UseSendMessageCompleteOptions,
 ) => {
@@ -37,12 +34,10 @@ type UseSendMessageStreamOptions = UseMutationOptions<
 >
 
 /**
-   * AIアシスタントにメッセージを送信するカスタムフック（ストリーミング）
-   * mutationFnはResponseオブジェクト（ストリームを含む）を返します。
-   */
-export const useSendMessageStream = (
-  options?: UseSendMessageStreamOptions,
-) => {
+ * AIアシスタントにメッセージを送信するカスタムフック（ストリーミング）
+ * mutationFnはResponseオブジェクト（ストリームを含む）を返します。
+ */
+export const useSendMessageStream = (options?: UseSendMessageStreamOptions) => {
   return useMutation({
     mutationFn: chatApi.sendMessageStream,
     ...options,

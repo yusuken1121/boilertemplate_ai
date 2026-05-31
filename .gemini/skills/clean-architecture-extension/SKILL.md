@@ -23,12 +23,16 @@ Zero changes to Core Use Cases — swap the Infrastructure adapter only.
 Create `src/infrastructure/openai/openai.gateway.ts` implementing `IAIGateway`:
 
 ```typescript
-import type { IAIGateway } from "@/core/ports/ai-gateway.port";
-import type { Message } from "@/core/domain/message.entity";
+import type { IAIGateway } from "@/core/ports/ai-gateway.port"
+import type { Message } from "@/core/domain/message.entity"
 
 export class OpenAIGateway implements IAIGateway {
-  async generate(messages: Message[], options?) { /* ... */ }
-  async generateStream(messages: Message[], options?) { /* ... */ }
+  async generate(messages: Message[], options?) {
+    /* ... */
+  }
+  async generateStream(messages: Message[], options?) {
+    /* ... */
+  }
 }
 ```
 
@@ -38,7 +42,7 @@ export class OpenAIGateway implements IAIGateway {
 
 ```typescript
 export function createOpenAIGateway(): IAIGateway {
-  return new OpenAIGateway();
+  return new OpenAIGateway()
 }
 ```
 
@@ -57,25 +61,25 @@ In `src/app/api/chat/route.ts`:
 
 Use this order every time:
 
-| Step | Layer | Path |
-| :--- | :---- | :--- |
-| 1 | Entity | `src/core/domain/` |
-| 2 | Port | `src/core/ports/` |
-| 3 | Use Case | `src/core/use-cases/` |
-| 4 | Infrastructure adapter | `src/infrastructure/` |
-| 5 | Route Handler (Zod + DI) | `src/app/api/<feature>/route.ts` |
-| 6 | API wrapper + React Query hook | `src/lib/api/` + `src/lib/api/queries/` |
-| 7 | UI component | `src/app/_components/` |
+| Step | Layer                          | Path                                    |
+| :--- | :----------------------------- | :-------------------------------------- |
+| 1    | Entity                         | `src/core/domain/`                      |
+| 2    | Port                           | `src/core/ports/`                       |
+| 3    | Use Case                       | `src/core/use-cases/`                   |
+| 4    | Infrastructure adapter         | `src/infrastructure/`                   |
+| 5    | Route Handler (Zod + DI)       | `src/app/api/<feature>/route.ts`        |
+| 6    | API wrapper + React Query hook | `src/lib/api/` + `src/lib/api/queries/` |
+| 7    | UI component                   | `src/app/_components/`                  |
 
 ### Step 1 — Entity
 
 ```typescript
 // src/core/domain/feedback.entity.ts
 export interface Feedback {
-  id: string;
-  rating: number;
-  comments: string;
-  createdAt: Date;
+  id: string
+  rating: number
+  comments: string
+  createdAt: Date
 }
 ```
 
@@ -83,10 +87,10 @@ export interface Feedback {
 
 ```typescript
 // src/core/ports/feedback-repository.port.ts
-import type { Feedback } from "../domain/feedback.entity";
+import type { Feedback } from "../domain/feedback.entity"
 
 export interface IFeedbackRepository {
-  save(feedback: Feedback): Promise<void>;
+  save(feedback: Feedback): Promise<void>
 }
 ```
 
@@ -97,9 +101,13 @@ export interface IFeedbackRepository {
 export class SubmitFeedbackUseCase {
   constructor(private readonly repository: IFeedbackRepository) {}
   async execute(input: Omit<Feedback, "id" | "createdAt">): Promise<Feedback> {
-    const feedback = { id: crypto.randomUUID(), createdAt: new Date(), ...input };
-    await this.repository.save(feedback);
-    return feedback;
+    const feedback = {
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      ...input,
+    }
+    await this.repository.save(feedback)
+    return feedback
   }
 }
 ```
@@ -109,7 +117,9 @@ export class SubmitFeedbackUseCase {
 ```typescript
 // src/infrastructure/database/firestore-feedback.repository.ts
 export class FirestoreFeedbackRepository implements IFeedbackRepository {
-  async save(feedback: Feedback): Promise<void> { /* ... */ }
+  async save(feedback: Feedback): Promise<void> {
+    /* ... */
+  }
 }
 ```
 
@@ -117,21 +127,21 @@ export class FirestoreFeedbackRepository implements IFeedbackRepository {
 
 ```typescript
 // src/app/api/feedback/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { FirestoreFeedbackRepository } from "@/infrastructure/database/firestore-feedback.repository";
-import { SubmitFeedbackUseCase } from "@/core/use-cases/submit-feedback.use-case";
+import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
+import { FirestoreFeedbackRepository } from "@/infrastructure/database/firestore-feedback.repository"
+import { SubmitFeedbackUseCase } from "@/core/use-cases/submit-feedback.use-case"
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
   comments: z.string().min(5),
-});
+})
 
 export async function POST(req: NextRequest) {
-  const validated = feedbackSchema.parse(await req.json());
-  const useCase = new SubmitFeedbackUseCase(new FirestoreFeedbackRepository());
-  const result = await useCase.execute(validated);
-  return NextResponse.json(result);
+  const validated = feedbackSchema.parse(await req.json())
+  const useCase = new SubmitFeedbackUseCase(new FirestoreFeedbackRepository())
+  const result = await useCase.execute(validated)
+  return NextResponse.json(result)
 }
 ```
 

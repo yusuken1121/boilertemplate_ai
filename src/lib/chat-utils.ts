@@ -1,4 +1,4 @@
-import { createMessage } from "@/core/domain/message.entity";
+import { createMessage } from "@/core/domain/message.entity"
 
 /**
  * Helper function to create a new chat message
@@ -7,7 +7,7 @@ import { createMessage } from "@/core/domain/message.entity";
 export function createChatMessage(
   role: "user" | "assistant" | "system",
   content: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
-  return createMessage(role, content, undefined, metadata);
+  return createMessage(role, content, undefined, metadata)
 }

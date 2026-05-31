@@ -16,6 +16,7 @@ description: >-
 - **External DB**: Notion API
 - **UI**: shadcn/ui + Tailwind CSS v4
 - **Testing**: Vitest
+- **Lint / Format**: ESLint + Prettier
 - **Package Manager**: pnpm
 
 ## Getting Started
@@ -48,16 +49,28 @@ Open [http://localhost:3000](http://localhost:3000).
 pnpm test
 ```
 
+### 5. Format & lint
+
+```bash
+pnpm format        # Prettier — auto-fix
+pnpm format:check  # Prettier — check only (CI)
+pnpm lint            # ESLint
+pnpm lint:fix        # ESLint — auto-fix
+pnpm check           # format:check + lint + test
+```
+
+VS Code / Cursor: `.vscode/settings.json` enables format-on-save with Prettier and ESLint fix.
+
 ## Environment Variables
 
-| Variable | Required | Description |
-| :------- | :------- | :---------- |
-| `GEMINI_API_KEY` | Yes (Chat) | Google AI API key |
-| `NOTION_TOKEN` | Yes (Notion) | Notion integration token |
-| `NOTION_CONTACT_DATABASE_ID` | Yes (Notion) | Target Notion database ID |
-| `NEXT_PUBLIC_API_URL` | No | API base URL (defaults to same origin) |
-| `NEXT_PUBLIC_USE_MOCK` | No | Set `"true"` to use mock API |
-| `NEXT_PUBLIC_MOCK_API_URL` | No | Mock API base URL |
+| Variable                     | Required     | Description                            |
+| :--------------------------- | :----------- | :------------------------------------- |
+| `GEMINI_API_KEY`             | Yes (Chat)   | Google AI API key                      |
+| `NOTION_TOKEN`               | Yes (Notion) | Notion integration token               |
+| `NOTION_CONTACT_DATABASE_ID` | Yes (Notion) | Target Notion database ID              |
+| `NEXT_PUBLIC_API_URL`        | No           | API base URL (defaults to same origin) |
+| `NEXT_PUBLIC_USE_MOCK`       | No           | Set `"true"` to use mock API           |
+| `NEXT_PUBLIC_MOCK_API_URL`   | No           | Mock API base URL                      |
 
 See `.env.example` for the template.
 

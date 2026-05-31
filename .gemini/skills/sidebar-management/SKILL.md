@@ -19,7 +19,7 @@ Add a constant in `src/constants/path.ts`:
 export const PATH = {
   // ...
   NEW_FEATURE: "/new-feature",
-} as const;
+} as const
 ```
 
 ### 2. Register the menu item

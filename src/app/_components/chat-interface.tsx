@@ -1,51 +1,52 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useSendMessageStream } from "@/lib/api/queries/useChat";
-import { createChatMessage } from "@/lib/chat-utils";
-import type { Message } from "@/core/domain/message.entity";
+import * as React from "react"
+import { Send, Bot, User, Loader2, Sparkles } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useSendMessageStream } from "@/lib/api/queries/useChat"
+import { createChatMessage } from "@/lib/chat-utils"
+import type { Message } from "@/core/domain/message.entity"
 
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 
 export function ChatInterface() {
   // State and Mutation
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [inputValue, setInputValue] = React.useState("");
-  const { mutateAsync: sendMessage, isPending: isLoading } = useSendMessageStream();
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
-  const bottomRef = React.useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = React.useState<Message[]>([])
+  const [inputValue, setInputValue] = React.useState("")
+  const { mutateAsync: sendMessage, isPending: isLoading } =
+    useSendMessageStream()
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+  const bottomRef = React.useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
     if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading])
 
   // Handle form submission
   const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+    e?.preventDefault()
+    if (!inputValue.trim() || isLoading) return
 
-    const userContent = inputValue.trim();
-    setInputValue("");
+    const userContent = inputValue.trim()
+    setInputValue("")
 
     // 1. Create and add user message immediately
-    const userMessage = createChatMessage("user", userContent);
-    const newHistory = [...messages, userMessage];
-    setMessages(newHistory);
+    const userMessage = createChatMessage("user", userContent)
+    const newHistory = [...messages, userMessage]
+    setMessages(newHistory)
 
     try {
       // 2. Create placeholder for assistant message
-      const assistantMessage = createChatMessage("assistant", "");
-      setMessages((prev) => [...prev, assistantMessage]);
+      const assistantMessage = createChatMessage("assistant", "")
+      setMessages((prev) => [...prev, assistantMessage])
 
       // 3. Call React Query mutation
       const response = await sendMessage({
@@ -54,53 +55,53 @@ export function ChatInterface() {
           model: "gemini-2.0-flash-exp", // Using the fast experimental model
           temperature: 0.7,
         },
-      });
+      })
 
       if (!response.body) {
-        throw new Error("Response body is not readable");
+        throw new Error("Response body is not readable")
       }
 
       // 4. Read the stream
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = "";
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let fullContent = ""
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await reader.read()
 
-        if (done) break;
+        if (done) break
 
         // Decode chunk
-        const chunk = decoder.decode(value, { stream: true });
-        fullContent += chunk;
+        const chunk = decoder.decode(value, { stream: true })
+        fullContent += chunk
 
         // Update the last message (assistant) with accumulated content
         setMessages((prev) => {
-          const lastMsg = prev[prev.length - 1];
+          const lastMsg = prev[prev.length - 1]
           // Only update if it's the assistant message we just created
           if (lastMsg.id === assistantMessage.id) {
-            return [...prev.slice(0, -1), { ...lastMsg, content: fullContent }];
+            return [...prev.slice(0, -1), { ...lastMsg, content: fullContent }]
           }
-          return prev;
-        });
+          return prev
+        })
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Failed to send message:", error)
       // You could add a toast notification here
       setMessages((prev) => [
         ...prev,
         createChatMessage("system", "Error: Failed to get response from AI."),
-      ]);
+      ])
     }
-  };
+  }
 
   // Handle key press (Enter to send, Shift+Enter for new line)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+      e.preventDefault()
+      handleSubmit()
     }
-  };
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] max-w-4xl mx-auto w-full bg-background rounded-xl border shadow-sm overflow-hidden">
@@ -148,7 +149,7 @@ export function ChatInterface() {
                 key={msg.id}
                 className={cn(
                   "flex w-full items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300",
-                  msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                  msg.role === "user" ? "flex-row-reverse" : "flex-row",
                 )}
               >
                 {/* Avatar */}
@@ -157,14 +158,14 @@ export function ChatInterface() {
                     "w-8 h-8",
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted border"
+                      : "bg-muted border",
                   )}
                 >
                   <AvatarFallback
                     className={cn(
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        : "bg-muted",
                     )}
                   >
                     {msg.role === "user" ? (
@@ -184,7 +185,7 @@ export function ChatInterface() {
                     "relative px-4 py-3 max-w-[80%] rounded-2xl text-sm shadow-sm",
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground rounded-tr-none"
-                      : "bg-muted/50 border rounded-tl-none text-foreground"
+                      : "bg-muted/50 border rounded-tl-none text-foreground",
                   )}
                 >
                   {/* System messages styled differently */}
@@ -206,7 +207,7 @@ export function ChatInterface() {
                       "text-[10px] opacity-50 mt-1 w-full flex",
                       msg.role === "user"
                         ? "justify-end text-primary-foreground/70"
-                        : "justify-start text-muted-foreground"
+                        : "justify-start text-muted-foreground",
                     )}
                   >
                     {msg.createdAt.toLocaleTimeString([], {
@@ -247,7 +248,7 @@ export function ChatInterface() {
               "absolute right-2 bottom-2 rounded-lg transition-all duration-200",
               inputValue.trim()
                 ? "opacity-100 scale-100"
-                : "opacity-0 scale-90 pointer-events-none"
+                : "opacity-0 scale-90 pointer-events-none",
             )}
           >
             {isLoading ? (
@@ -263,5 +264,5 @@ export function ChatInterface() {
         </p>
       </div>
     </div>
-  );
+  )
 }

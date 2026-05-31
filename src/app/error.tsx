@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCcw } from "lucide-react";
+import { useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { AlertCircle, RefreshCcw } from "lucide-react"
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: Error & { digest?: string }
+  reset: () => void
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error(error);
-  }, [error]);
+    console.error(error)
+  }, [error])
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full flex-col items-center justify-center gap-6 text-center px-4">
@@ -42,5 +42,5 @@ export default function Error({
         </Button>
       </div>
     </div>
-  );
+  )
 }

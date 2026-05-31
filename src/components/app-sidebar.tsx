@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Sidebar,
@@ -11,53 +11,53 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
 import {
   SIDEBAR_CONFIG,
   mainSidebar,
   manageSidebar,
   adminSidebar,
   footerSidebar,
-} from "@/constants/menuKeys";
-import { cn } from "@/lib/utils";
-import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { APP_CONFIG } from "@/constants/app-config";
+} from "@/constants/menuKeys"
+import { cn } from "@/lib/utils"
+import React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { APP_CONFIG } from "@/constants/app-config"
 
 export function AppSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   const renderSidebarItems = (keys: typeof mainSidebar) => {
     return keys.map((key) => {
-      const item = SIDEBAR_CONFIG[key];
+      const item = SIDEBAR_CONFIG[key]
       // Safety check
-      if (!item) return null;
+      if (!item) return null
       // Skip if no path/functionality
-      if (!item.path && !item.functionality) return null;
+      if (!item.path && !item.functionality) return null
 
       const isActive = item.path
         ? pathname === item.path ||
           (pathname.startsWith(`${item.path}/`) && item.path !== "/")
-        : false;
-      const exactMatch = item.path ? pathname === item.path : false;
+        : false
+      const exactMatch = item.path ? pathname === item.path : false
 
       // Use exact match for home, broader match for others if needed
-      const activeState = item.path === "/" ? exactMatch : isActive;
+      const activeState = item.path === "/" ? exactMatch : isActive
 
       // Prepare Icon
-      let icon = item.icon;
+      let icon = item.icon
       if (React.isValidElement(icon)) {
-        const iconElement = icon as React.ReactElement<{ className?: string }>;
+        const iconElement = icon as React.ReactElement<{ className?: string }>
         icon = React.cloneElement(iconElement, {
           className: cn(
             iconElement.props.className,
             "transition-colors",
             activeState
               ? item.activeColor || "text-foreground"
-              : "text-muted-foreground"
+              : "text-muted-foreground",
           ),
-        });
+        })
       }
 
       if (item.functionality) {
@@ -75,7 +75,7 @@ export function AppSidebar() {
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        );
+        )
       }
 
       return (
@@ -87,7 +87,7 @@ export function AppSidebar() {
               "h-10 transition-all duration-200 ease-in-out",
               activeState
                 ? "bg-sidebar-accent shadow-sm"
-                : "hover:bg-sidebar-accent/50 hover:translate-x-1"
+                : "hover:bg-sidebar-accent/50 hover:translate-x-1",
             )}
           >
             <Link href={item.path!} className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export function AppSidebar() {
               <span
                 className={cn(
                   "font-medium",
-                  activeState ? "text-foreground" : "text-muted-foreground"
+                  activeState ? "text-foreground" : "text-muted-foreground",
                 )}
               >
                 {item.label}
@@ -104,16 +104,16 @@ export function AppSidebar() {
                 <div
                   className={cn(
                     "ml-auto h-1.5 w-1.5 rounded-full",
-                    item.activeColor.replace("text-", "bg-")
+                    item.activeColor.replace("text-", "bg-"),
                   )}
                 />
               )}
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
-      );
-    });
-  };
+      )
+    })
+  }
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar/50 backdrop-blur-xl">
@@ -188,5 +188,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }

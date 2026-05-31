@@ -61,15 +61,15 @@ ChatInterface
 
 ## Context Map
 
-| Layer | Path | Responsibility | May Import |
-| :---- | :--- | :------------- | :--------- |
-| **Domain** | `src/core/domain` | Entities. Pure data structures. | Nothing |
-| **Ports** | `src/core/ports` | Interfaces for external services. | Domain |
-| **Use Cases** | `src/core/use-cases` | Business logic & orchestration. | Domain, Ports |
-| **Infrastructure** | `src/infrastructure` | Port implementations (SDKs, APIs). | Ports, External SDKs |
-| **Composition Root** | `src/app/api/**/route.ts` | Zod validation, DI, HTTP entry points. | Use Cases, Infrastructure |
-| **Client Data** | `src/lib/api` | Axios client, React Query hooks. | Core types only (not Infrastructure) |
-| **UI** | `src/app`, `src/components` | Pages, feature components, shadcn/ui. | Client Data, Core types |
+| Layer                | Path                        | Responsibility                         | May Import                           |
+| :------------------- | :-------------------------- | :------------------------------------- | :----------------------------------- |
+| **Domain**           | `src/core/domain`           | Entities. Pure data structures.        | Nothing                              |
+| **Ports**            | `src/core/ports`            | Interfaces for external services.      | Domain                               |
+| **Use Cases**        | `src/core/use-cases`        | Business logic & orchestration.        | Domain, Ports                        |
+| **Infrastructure**   | `src/infrastructure`        | Port implementations (SDKs, APIs).     | Ports, External SDKs                 |
+| **Composition Root** | `src/app/api/**/route.ts`   | Zod validation, DI, HTTP entry points. | Use Cases, Infrastructure            |
+| **Client Data**      | `src/lib/api`               | Axios client, React Query hooks.       | Core types only (not Infrastructure) |
+| **UI**               | `src/app`, `src/components` | Pages, feature components, shadcn/ui.  | Client Data, Core types              |
 
 ## Project Structure
 

@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const validatedInput = contactSubmissionSchema.parse(body)
 
-    const writer = createNotionRecordWriter<ContactSubmission>(contactNotionConfig)
+    const writer =
+      createNotionRecordWriter<ContactSubmission>(contactNotionConfig)
     const useCase = new CreateNotionRecordUseCase<ContactSubmission>(writer)
     const result = await useCase.execute(validatedInput)
 
@@ -28,7 +29,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : "Internal Server Error",
+      },
       { status: 500 },
     )
   }

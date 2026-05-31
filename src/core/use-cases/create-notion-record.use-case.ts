@@ -1,5 +1,5 @@
-import type { NotionPageRef } from "../domain/notion-page-ref";
-import type { INotionRecordWriter } from "../ports/notion-record-writer.port";
+import type { NotionPageRef } from "../domain/notion-page-ref"
+import type { INotionRecordWriter } from "../ports/notion-record-writer.port"
 
 export class CreateNotionRecordUseCase<
   TRecord extends Record<string, unknown>,
@@ -7,6 +7,6 @@ export class CreateNotionRecordUseCase<
   constructor(private readonly writer: INotionRecordWriter<TRecord>) {}
 
   async execute(record: TRecord): Promise<NotionPageRef> {
-    return this.writer.create(record);
+    return this.writer.create(record)
   }
 }

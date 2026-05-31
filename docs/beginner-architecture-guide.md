@@ -29,14 +29,14 @@ UI → React Query → /api/* → Use Case → Infrastructure
 
 ### たとえ話：レストラン
 
-| レイヤー | レストランでの役割 | このプロジェクトでの例 |
-|---------|-------------------|----------------------|
-| **UI** | お客さんが注文するカウンター | `ChatInterface` コンポーネント |
-| **Client Data** | ウェイター（注文を厨房に伝える） | `useSendMessageStream` フック |
-| **Route Handler** | 受付（注文票をチェックする） | `/api/chat/route.ts` |
-| **Use Case** | シェフ（調理の手順を決める） | `SendMessageUseCase` |
-| **Port** | レシピの「調味料は何でもよい」と書いてある部分 | `IAIGateway` インターフェース |
-| **Infrastructure** | 実際の調味料（Gemini SDK など） | `GeminiGateway` |
+| レイヤー           | レストランでの役割                             | このプロジェクトでの例         |
+| ------------------ | ---------------------------------------------- | ------------------------------ |
+| **UI**             | お客さんが注文するカウンター                   | `ChatInterface` コンポーネント |
+| **Client Data**    | ウェイター（注文を厨房に伝える）               | `useSendMessageStream` フック  |
+| **Route Handler**  | 受付（注文票をチェックする）                   | `/api/chat/route.ts`           |
+| **Use Case**       | シェフ（調理の手順を決める）                   | `SendMessageUseCase`           |
+| **Port**           | レシピの「調味料は何でもよい」と書いてある部分 | `IAIGateway` インターフェース  |
+| **Infrastructure** | 実際の調味料（Gemini SDK など）                | `GeminiGateway`                |
 
 **ポイント：** シェフ（Use Case）は「Gemini という調味料」ではなく、「AI ゲートウェイという抽象」にだけ依存します。  
 将来 OpenAI に変えても、シェフのレシピ（Use Case）は変更不要、という設計です。
@@ -428,12 +428,12 @@ AI プロバイダーを Gemini → OpenAI に変えるとき、変えるのは 
 
 ```typescript
 // api/chat/route.ts で差し替えるだけ
-const aiGateway = createOpenAIGateway()  // 以前は createGeminiGateway()
+const aiGateway = createOpenAIGateway() // 以前は createGeminiGateway()
 ```
 
 ### 原則 3：組み立ては1か所（Composition Root）
 
-Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ**。
+Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ\*\*。
 
 コンポーネントや Use Case の中で `new GeminiGateway()` してはいけません。
 
@@ -441,13 +441,13 @@ Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ
 
 ## 7. よくある間違い
 
-| 間違い | なぜダメか | 正しい場所 |
-|--------|-----------|-----------|
-| コンポーネントで Gemini SDK を直接呼ぶ | UI が外部サービスに縛られる | Infrastructure |
-| Use Case で `process.env` を読む | ビジネスロジックが環境に依存 | Route Handler または Infrastructure |
-| `core/` から `infrastructure/` を import | 依存の方向が逆 | Route Handler で DI |
-| ビジネスルールを Route Handler に書く | ロジックが散らばる | Use Case |
-| Zod なしで body を Use Case に渡す | 不正な入力が内部に入る | Route Handler + validators |
+| 間違い                                   | なぜダメか                   | 正しい場所                          |
+| ---------------------------------------- | ---------------------------- | ----------------------------------- |
+| コンポーネントで Gemini SDK を直接呼ぶ   | UI が外部サービスに縛られる  | Infrastructure                      |
+| Use Case で `process.env` を読む         | ビジネスロジックが環境に依存 | Route Handler または Infrastructure |
+| `core/` から `infrastructure/` を import | 依存の方向が逆               | Route Handler で DI                 |
+| ビジネスルールを Route Handler に書く    | ロジックが散らばる           | Use Case                            |
+| Zod なしで body を Use Case に渡す       | 不正な入力が内部に入る       | Route Handler + validators          |
 
 ---
 
@@ -455,15 +455,15 @@ Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ
 
 Chat と同じパターンで、次の順番でファイルを作ります。
 
-| 順番 | 作るもの | 例 |
-|------|---------|-----|
-| 1 | Entity | `core/domain/feedback.entity.ts` |
-| 2 | Port | `core/ports/feedback-repository.port.ts` |
-| 3 | Use Case | `core/use-cases/submit-feedback.use-case.ts` |
-| 4 | Infrastructure | `infrastructure/database/...` |
-| 5 | Route Handler | `app/api/feedback/route.ts` |
-| 6 | API + Hook | `lib/api/feedback.ts`, `lib/api/queries/useFeedback.ts` |
-| 7 | UI | `app/_components/feedback-form.tsx` |
+| 順番 | 作るもの       | 例                                                      |
+| ---- | -------------- | ------------------------------------------------------- |
+| 1    | Entity         | `core/domain/feedback.entity.ts`                        |
+| 2    | Port           | `core/ports/feedback-repository.port.ts`                |
+| 3    | Use Case       | `core/use-cases/submit-feedback.use-case.ts`            |
+| 4    | Infrastructure | `infrastructure/database/...`                           |
+| 5    | Route Handler  | `app/api/feedback/route.ts`                             |
+| 6    | API + Hook     | `lib/api/feedback.ts`, `lib/api/queries/useFeedback.ts` |
+| 7    | UI             | `app/_components/feedback-form.tsx`                     |
 
 詳細は [clean-architecture-extension Skill](../.cursor/skills/clean-architecture-extension/SKILL.md) を参照。
 
@@ -493,11 +493,11 @@ Infrastructure 層の単体テストが「Port の実装が正しいか」を確
 
 ## 10. 次に読むもの
 
-| 資料 | 内容 |
-|------|------|
-| [README.md](../README.md) | プロジェクト概要と Skill 一覧 |
-| [architecture-overview Skill](../.cursor/skills/architecture-overview/SKILL.md) | レイヤー表・ディレクトリ構造 |
-| [architectural-rules Skill](../.cursor/skills/architectural-rules/SKILL.md) | 厳密なルール |
+| 資料                                                                                | 内容                          |
+| ----------------------------------------------------------------------------------- | ----------------------------- |
+| [README.md](../README.md)                                                           | プロジェクト概要と Skill 一覧 |
+| [architecture-overview Skill](../.cursor/skills/architecture-overview/SKILL.md)     | レイヤー表・ディレクトリ構造  |
+| [architectural-rules Skill](../.cursor/skills/architectural-rules/SKILL.md)         | 厳密なルール                  |
 | [react-query-api-pattern Skill](../.cursor/skills/react-query-api-pattern/SKILL.md) | フロント ↔ API の標準パターン |
 
 ---

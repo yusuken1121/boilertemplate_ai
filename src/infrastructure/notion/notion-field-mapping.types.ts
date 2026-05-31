@@ -6,17 +6,17 @@ export type NotionFieldType =
   | "select"
   | "files"
   | "checkbox"
-  | "url";
+  | "url"
 
 export type NotionFieldMapping<TRecord extends Record<string, unknown>> = {
   /** Omit when using transform-only fields (e.g. derived title). */
-  recordKey?: keyof TRecord & string;
-  propertyName: string;
-  type: NotionFieldType;
-  transform?: (value: unknown, record: TRecord) => unknown;
-};
+  recordKey?: keyof TRecord & string
+  propertyName: string
+  type: NotionFieldType
+  transform?: (value: unknown, record: TRecord) => unknown
+}
 
 export type NotionDatabaseConfig<TRecord extends Record<string, unknown>> = {
-  databaseId: string;
-  fields: Array<NotionFieldMapping<TRecord>>;
-};
+  databaseId: string
+  fields: Array<NotionFieldMapping<TRecord>>
+}

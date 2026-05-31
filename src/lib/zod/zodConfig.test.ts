@@ -38,8 +38,7 @@ describe("zodConfig Error Messages", () => {
       {
         field: "email",
         val: "invalid-email",
-        expected:
-          "正しいメールアドレス形式で入力してください",
+        expected: "正しいメールアドレス形式で入力してください",
       },
     ])(
       "Field '$field' with value '$val' -> '$expected'",
@@ -86,13 +85,10 @@ describe("zodConfig Error Messages", () => {
         val: ["a", "b", "c", "d"],
         expected: "対象の項目は3個以下で選択してください",
       },
-    ])(
-      "Array check -> '$expected'",
-      ({ val, expected }) => {
-        const result = schema.safeParse({ tags: val })
-        expect(getMsg(result, "tags")).toBe(expected)
-      },
-    )
+    ])("Array check -> '$expected'", ({ val, expected }) => {
+      const result = schema.safeParse({ tags: val })
+      expect(getMsg(result, "tags")).toBe(expected)
+    })
   })
 
   describe("Required checks (null/undefined)", () => {
@@ -104,9 +100,7 @@ describe("zodConfig Error Messages", () => {
           email: "a@b.com",
           password: "password123",
         })
-        expect(getMsg(result, "name")).toBe(
-          "氏名を入力してください",
-        )
+        expect(getMsg(result, "name")).toBe("氏名を入力してください")
       },
     )
   })

@@ -5,20 +5,20 @@
  * This adapter converts between our domain model and Gemini's API.
  */
 
-import { GoogleGenerativeAI, type Content } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Content } from "@google/generative-ai"
 import type {
   IAIGateway,
   AIGenerateOptions,
-} from "@/core/ports/ai-gateway.port";
-import type { Message } from "@/core/domain/message.entity";
-import { GeminiClientFactory } from "./gemini.client";
+} from "@/core/ports/ai-gateway.port"
+import type { Message } from "@/core/domain/message.entity"
+import { GeminiClientFactory } from "./gemini.client"
 
 /**
  * Default configuration for Gemini API
  */
-const DEFAULT_MODEL = "gemini-2.0-flash-exp";
-const DEFAULT_TEMPERATURE = 0.7;
-const DEFAULT_MAX_TOKENS = 2048;
+const DEFAULT_MODEL = "gemini-2.0-flash-exp"
+const DEFAULT_TEMPERATURE = 0.7
+const DEFAULT_MAX_TOKENS = 2048
 
 /**
  * Gemini Gateway
@@ -27,10 +27,10 @@ const DEFAULT_MAX_TOKENS = 2048;
  * Handles conversion between our Message entities and Gemini's Content format.
  */
 export class GeminiGateway implements IAIGateway {
-  private client: GoogleGenerativeAI;
+  private client: GoogleGenerativeAI
 
   constructor(apiKey?: string) {
-    this.client = GeminiClientFactory.create(apiKey);
+    this.client = GeminiClientFactory.create(apiKey)
   }
 
   /**
@@ -42,15 +42,15 @@ export class GeminiGateway implements IAIGateway {
       .map((msg) => ({
         role: msg.role === "assistant" ? "model" : "user",
         parts: [{ text: msg.content }],
-      }));
+      }))
   }
 
   /**
    * Extract system prompt from messages if present
    */
   private extractSystemPrompt(messages: Message[]): string | undefined {
-    const systemMessage = messages.find((msg) => msg.role === "system");
-    return systemMessage?.content;
+    const systemMessage = messages.find((msg) => msg.role === "system")
+    return systemMessage?.content
   }
 
   /**
@@ -62,11 +62,11 @@ export class GeminiGateway implements IAIGateway {
    */
   async generateStream(
     messages: Message[],
-    options?: AIGenerateOptions
+    options?: AIGenerateOptions,
   ): Promise<ReadableStream<string>> {
-    const modelName = options?.model ?? DEFAULT_MODEL;
+    const modelName = options?.model ?? DEFAULT_MODEL
     const systemPrompt =
-      options?.systemPrompt ?? this.extractSystemPrompt(messages);
+      options?.systemPrompt ?? this.extractSystemPrompt(messages)
 
     // Configure the model
     const model = this.client.getGenerativeModel({
@@ -77,46 +77,46 @@ export class GeminiGateway implements IAIGateway {
         maxOutputTokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: options?.topP,
       },
-    });
+    })
 
     // Convert messages to Gemini format
-    const geminiMessages = this.convertMessagesToGeminiFormat(messages);
+    const geminiMessages = this.convertMessagesToGeminiFormat(messages)
 
     // Start the chat session
     const chat = model.startChat({
       history: geminiMessages.slice(0, -1), // All messages except the last one
-    });
+    })
 
     // Get the last user message
-    const lastMessage = geminiMessages[geminiMessages.length - 1];
+    const lastMessage = geminiMessages[geminiMessages.length - 1]
     if (!lastMessage) {
-      throw new Error("No messages provided");
+      throw new Error("No messages provided")
     }
 
-    const messageText = lastMessage.parts[0]?.text;
+    const messageText = lastMessage.parts[0]?.text
     if (!messageText) {
-      throw new Error("Message content is empty");
+      throw new Error("Message content is empty")
     }
 
     // Send the message and get streaming response
-    const result = await chat.sendMessageStream(messageText);
+    const result = await chat.sendMessageStream(messageText)
 
     // Convert Gemini's async iterable to Web ReadableStream
     return new ReadableStream<string>({
       async start(controller) {
         try {
           for await (const chunk of result.stream) {
-            const text = chunk.text();
+            const text = chunk.text()
             if (text) {
-              controller.enqueue(text);
+              controller.enqueue(text)
             }
           }
-          controller.close();
+          controller.close()
         } catch (error) {
-          controller.error(error);
+          controller.error(error)
         }
       },
-    });
+    })
   }
 
   /**
@@ -128,11 +128,11 @@ export class GeminiGateway implements IAIGateway {
    */
   async generate(
     messages: Message[],
-    options?: AIGenerateOptions
+    options?: AIGenerateOptions,
   ): Promise<string> {
-    const modelName = options?.model ?? DEFAULT_MODEL;
+    const modelName = options?.model ?? DEFAULT_MODEL
     const systemPrompt =
-      options?.systemPrompt ?? this.extractSystemPrompt(messages);
+      options?.systemPrompt ?? this.extractSystemPrompt(messages)
 
     // Configure the model
     const model = this.client.getGenerativeModel({
@@ -143,32 +143,32 @@ export class GeminiGateway implements IAIGateway {
         maxOutputTokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: options?.topP,
       },
-    });
+    })
 
     // Convert messages to Gemini format
-    const geminiMessages = this.convertMessagesToGeminiFormat(messages);
+    const geminiMessages = this.convertMessagesToGeminiFormat(messages)
 
     // Start the chat session
     const chat = model.startChat({
       history: geminiMessages.slice(0, -1), // All messages except the last one
-    });
+    })
 
     // Get the last user message
-    const lastMessage = geminiMessages[geminiMessages.length - 1];
+    const lastMessage = geminiMessages[geminiMessages.length - 1]
     if (!lastMessage) {
-      throw new Error("No messages provided");
+      throw new Error("No messages provided")
     }
 
-    const messageText = lastMessage.parts[0]?.text;
+    const messageText = lastMessage.parts[0]?.text
     if (!messageText) {
-      throw new Error("Message content is empty");
+      throw new Error("Message content is empty")
     }
 
     // Send the message and get complete response
-    const result = await chat.sendMessage(messageText);
-    const response = result.response;
+    const result = await chat.sendMessage(messageText)
+    const response = result.response
 
-    return response.text();
+    return response.text()
   }
 }
 
@@ -177,5 +177,5 @@ export class GeminiGateway implements IAIGateway {
  * Call from Route Handlers (Composition Root) only.
  */
 export function createGeminiGateway(apiKey?: string): IAIGateway {
-  return new GeminiGateway(apiKey);
+  return new GeminiGateway(apiKey)
 }

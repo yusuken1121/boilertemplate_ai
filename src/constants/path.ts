@@ -4,4 +4,4 @@
 export const PATH = {
   HOME: "/",
   SETTINGS: "/settings",
-} as const;
+} as const

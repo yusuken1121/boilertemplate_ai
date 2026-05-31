@@ -1,7 +1,4 @@
-import {
-  useMutation,
-  UseMutationOptions,
-} from "@tanstack/react-query"
+import { useMutation, UseMutationOptions } from "@tanstack/react-query"
 import { notionApi, NotionWriteResponse } from "../notion"
 import type { ContactSubmission } from "@/core/domain/contact-submission.entity"
 

@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Card,
@@ -6,24 +6,24 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
-import { APP_CONFIG } from "@/constants/app-config";
+} from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
+import { Moon, Sun } from "lucide-react"
+import { APP_CONFIG } from "@/constants/app-config"
 
 export default function SettingsPage() {
-  const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   // Avoid hydration mismatch
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
-  if (!mounted) return null;
+  if (!mounted) return null
 
   return (
     <div className="container mx-auto py-10 max-w-4xl">
@@ -76,5 +76,5 @@ export default function SettingsPage() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

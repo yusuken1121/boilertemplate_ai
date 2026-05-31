@@ -3,7 +3,7 @@ export class NotionWriteError extends Error {
     message: string,
     public readonly cause?: unknown,
   ) {
-    super(message);
-    this.name = "NotionWriteError";
+    super(message)
+    this.name = "NotionWriteError"
   }
 }

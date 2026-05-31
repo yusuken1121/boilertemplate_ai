@@ -3,12 +3,9 @@ import z from "zod"
 
 z.config({
   customError: (iss) => {
-    const pathKey = iss.path?.length
-      ? iss.path.join(".")
-      : undefined
+    const pathKey = iss.path?.length ? iss.path.join(".") : undefined
     const label =
-      FIELD_LABELS[pathKey as keyof typeof FIELD_LABELS] ??
-      "対象の項目"
+      FIELD_LABELS[pathKey as keyof typeof FIELD_LABELS] ?? "対象の項目"
 
     switch (iss.code) {
       case "too_small":
@@ -41,11 +38,7 @@ z.config({
         }
         return `${label}は無効な値です`
       case "invalid_type":
-        if (
-          iss.input === undefined ||
-          iss.input === null ||
-          iss.input === ""
-        ) {
+        if (iss.input === undefined || iss.input === null || iss.input === "") {
           return `${label}を入力してください`
         }
         return `${label}の形式が正しくありません`

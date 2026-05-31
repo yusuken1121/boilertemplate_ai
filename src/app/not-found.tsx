@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 
 export default function NotFound() {
   return (
@@ -14,8 +14,8 @@ export default function NotFound() {
             Page Not Found
           </h2>
           <p className="text-muted-foreground text-sm max-w-[400px] mx-auto">
-            The page you&apos;re looking for seems to have drifted into the digital
-            void.
+            The page you&apos;re looking for seems to have drifted into the
+            digital void.
           </p>
         </div>
       </div>
@@ -39,5 +39,5 @@ export default function NotFound() {
         <div className="absolute bottom-[20%] right-[10%] w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
     </div>
-  );
+  )
 }

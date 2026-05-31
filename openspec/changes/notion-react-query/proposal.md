@@ -13,6 +13,7 @@ The current Notion Database integration module is designed as an isolated infras
 ## Capabilities
 
 ### New Capabilities
+
 - `notion-react-query-optimization`: Exposes a unified Next.js API route handler, Zod schemas, a React Query mutation hook for submitting records, and updated skill documentation for the Notion integration.
 
 ### Modified Capabilities

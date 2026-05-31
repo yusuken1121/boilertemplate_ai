@@ -18,6 +18,7 @@ The current AI assistant chat application handles API communication and state ma
 ## Capabilities
 
 ### New Capabilities
+
 - `react-query-chat-integration`: Customized client-side API client, React Query hooks, and Zod validator tailored specifically for sending, validating, and streaming AI assistant messages.
 
 ### Modified Capabilities
