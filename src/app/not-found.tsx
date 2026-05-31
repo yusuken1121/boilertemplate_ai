@@ -14,7 +14,7 @@ export default function NotFound() {
             Page Not Found
           </h2>
           <p className="text-muted-foreground text-sm max-w-[400px] mx-auto">
-            The page you're looking for seems to have drifted into the digital
+            The page you&apos;re looking for seems to have drifted into the digital
             void.
           </p>
         </div>
