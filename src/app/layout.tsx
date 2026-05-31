@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { GlobalHeader } from "@/components/global-header";
+import ReactQueryProvider from "@/providers/query-client-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,16 +39,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <GlobalHeader />
-              <div className="flex flex-1 flex-col gap-4 p-4 md:p-8">
-                {children}
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
-          <Toaster />
+          <ReactQueryProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <GlobalHeader />
+                <div className="flex flex-1 flex-col gap-4 p-4 md:p-8">
+                  {children}
+                </div>
+              </SidebarInset>
+            </SidebarProvider>
+            <Toaster />
+          </ReactQueryProvider>
         </ThemeProvider>
       </body>
     </html>

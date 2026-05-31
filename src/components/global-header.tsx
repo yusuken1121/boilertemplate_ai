@@ -19,7 +19,7 @@ export function GlobalHeader() {
 
   // Helper to find label by path
   const getPageTitle = (path: string) => {
-    if (path === "/") return "News Flowchart";
+    if (path === "/") return "Chat";
 
     // Search in config
     const configEntry = Object.values(SIDEBAR_CONFIG).find(

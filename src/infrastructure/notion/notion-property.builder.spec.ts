@@ -158,7 +158,7 @@ describe("NotionPropertyBuilder", () => {
         {
           recordKey: "title",
           propertyName: "Name",
-          type: "unsupported-type" as any,
+          type: "unsupported-type" as unknown as never,
         },
       ];
 

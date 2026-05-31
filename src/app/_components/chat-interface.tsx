@@ -3,12 +3,11 @@
 import * as React from "react";
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sendMessageAction } from "@/app/_actions/chat";
+import { useSendMessageStream } from "@/lib/api/queries/useChat";
 import { createChatMessage } from "@/lib/chat-utils";
 import type { Message } from "@/core/domain/message.entity";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export function ChatInterface() {
-  // State
+  // State and Mutation
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [inputValue, setInputValue] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { mutateAsync: sendMessage, isPending: isLoading } = useSendMessageStream();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
 
@@ -37,7 +36,6 @@ export function ChatInterface() {
 
     const userContent = inputValue.trim();
     setInputValue("");
-    setIsLoading(true);
 
     // 1. Create and add user message immediately
     const userMessage = createChatMessage("user", userContent);
@@ -49,8 +47,8 @@ export function ChatInterface() {
       const assistantMessage = createChatMessage("assistant", "");
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // 3. Call Server Action
-      const stream = await sendMessageAction({
+      // 3. Call React Query mutation
+      const response = await sendMessage({
         messages: newHistory,
         options: {
           model: "gemini-2.0-flash-exp", // Using the fast experimental model
@@ -58,8 +56,13 @@ export function ChatInterface() {
         },
       });
 
+      if (!response.body) {
+        throw new Error("Response body is not readable");
+      }
+
       // 4. Read the stream
-      const reader = stream.getReader();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
       let fullContent = "";
 
       while (true) {
@@ -67,8 +70,9 @@ export function ChatInterface() {
 
         if (done) break;
 
-        // Append new chunk
-        fullContent += value;
+        // Decode chunk
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
 
         // Update the last message (assistant) with accumulated content
         setMessages((prev) => {
@@ -87,8 +91,6 @@ export function ChatInterface() {
         ...prev,
         createChatMessage("system", "Error: Failed to get response from AI."),
       ]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
