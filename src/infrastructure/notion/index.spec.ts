@@ -4,10 +4,7 @@ import { createNotionRecordWriter } from "./index"
 describe("createNotionRecordWriter", () => {
   it("throws when databaseId is empty", () => {
     expect(() =>
-      createNotionRecordWriter({
-        databaseId: "",
-        fields: [],
-      }),
-    ).toThrow("NOTION_CONTACT_DATABASE_ID")
+      createNotionRecordWriter({ databaseId: "", fields: [] }),
+    ).toThrow("Notion database ID is not configured")
   })
 })

@@ -15,31 +15,13 @@ export interface Message {
 export function createMessage(
   role: MessageRole,
   content: string,
-  id?: string,
   metadata?: Record<string, unknown>,
 ): Message {
   return {
-    id: id ?? crypto.randomUUID(),
+    id: crypto.randomUUID(),
     role,
     content,
     createdAt: new Date(),
     metadata,
   }
-}
-
-export function isMessage(obj: unknown): obj is Message {
-  if (typeof obj !== "object" || obj === null) {
-    return false
-  }
-
-  const msg = obj as Partial<Message>
-
-  return (
-    typeof msg.id === "string" &&
-    (msg.role === "user" ||
-      msg.role === "assistant" ||
-      msg.role === "system") &&
-    typeof msg.content === "string" &&
-    msg.createdAt instanceof Date
-  )
 }

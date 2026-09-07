@@ -1,4 +1,4 @@
-import type { INotionRecordWriter } from "../../core/ports/notion-record-writer.port"
+import type { INotionRecordWriter } from "@/core/ports/notion-record-writer.port"
 import { ConfigurableNotionGateway } from "./configurable-notion.gateway"
 import type { NotionDatabaseConfig } from "./notion-field-mapping.types"
 
@@ -20,9 +20,7 @@ export function createNotionRecordWriter<TRecord>(
   config: NotionDatabaseConfig<TRecord>,
 ): INotionRecordWriter<TRecord> {
   if (!config.databaseId) {
-    throw new Error(
-      "Notion database ID is not configured. Set NOTION_CONTACT_DATABASE_ID.",
-    )
+    throw new Error("Notion database ID is not configured")
   }
 
   return new ConfigurableNotionGateway(config)

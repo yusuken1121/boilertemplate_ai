@@ -16,30 +16,42 @@ UI → React Query → /api/* → Use Case → Infrastructure
 
 Server Actions are **not used**. All client-to-server calls go through Route Handlers.
 
+## Two axes: layers and slices
+
+Layers say _what kind_ of code something is. Slices say _which feature_ it belongs to.
+
+- `src/core` and `src/infrastructure` are **feature-agnostic**: the shared kernel and
+  the reusable adapters. They survive when a feature is deleted.
+- `src/features/<feature>` is a **vertical slice**: domain rules, use case, Zod schema,
+  API wrapper, React Query hook, components. Deleting the folder removes the feature.
+
+A slice may import from `core` (inward). `core` and `infrastructure` must **never**
+import from `features`.
+
 ## Data Flow
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │  UI Layer                                                    │
-│  src/app/_components/  +  src/components/ui/ (shadcn)       │
+│  src/features/<f>/components/  +  src/components/ui/         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ React Query hooks
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Client Data Layer                                           │
-│  src/lib/api/queries/  →  src/lib/api/*.ts  (Axios/fetch)   │
+│  src/features/<f>/api/  →  src/lib/api/api-client.ts         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ POST /api/*
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Composition Root (Controller)                             │
+│  Composition Root (Controller)                               │
 │  src/app/api/**/route.ts  — Zod validation + DI              │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Application Layer                                           │
-│  src/core/use-cases/  — Business logic                       │
+│  src/features/<f>/use-cases/  ·  src/core/use-cases/         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ depends on Ports (interfaces)
                                ▼
@@ -52,62 +64,77 @@ Server Actions are **not used**. All client-to-server calls go through Route Han
 ## Example: Chat
 
 ```
-ChatInterface
-  → useSendMessageStream()       [src/lib/api/queries/useChat.ts]
-  → POST /api/chat                 [src/app/api/chat/route.ts]
-  → SendMessageUseCase             [src/core/use-cases/]
-  → GeminiGateway (IAIGateway)     [src/infrastructure/gemini/]
+ChatInterface                    [src/features/chat/components/]
+  → useChatStream()              [src/features/chat/hooks/use-chat-stream.ts]
+  → useSendMessageStream()       [src/features/chat/api/use-chat.ts]
+  → POST /api/chat               [src/app/api/chat/route.ts]
+  → SendMessageUseCase           [src/features/chat/use-cases/]
+  → GeminiGateway (IAIGateway)   [src/infrastructure/gemini/]
 ```
 
 ## Context Map
 
-| Layer                | Path                        | Responsibility                         | May Import                           |
-| :------------------- | :-------------------------- | :------------------------------------- | :----------------------------------- |
-| **Domain**           | `src/core/domain`           | Entities. Pure data structures.        | Nothing                              |
-| **Ports**            | `src/core/ports`            | Interfaces for external services.      | Domain                               |
-| **Use Cases**        | `src/core/use-cases`        | Business logic & orchestration.        | Domain, Ports                        |
-| **Infrastructure**   | `src/infrastructure`        | Port implementations (SDKs, APIs).     | Ports, External SDKs                 |
-| **Composition Root** | `src/app/api/**/route.ts`   | Zod validation, DI, HTTP entry points. | Use Cases, Infrastructure            |
-| **Client Data**      | `src/lib/api`               | Axios client, React Query hooks.       | Core types only (not Infrastructure) |
-| **UI**               | `src/app`, `src/components` | Pages, feature components, shadcn/ui.  | Client Data, Core types              |
+| Layer                | Path                        | Responsibility                           | May Import                      |
+| :------------------- | :-------------------------- | :--------------------------------------- | :------------------------------ |
+| **Domain**           | `src/core/domain`           | Entities, value objects, `DomainError`.  | Nothing                         |
+| **Ports**            | `src/core/ports`            | Interfaces for external services.        | Domain                          |
+| **Shared Use Cases** | `src/core/use-cases`        | Generic, feature-agnostic orchestration. | Domain, Ports                   |
+| **Infrastructure**   | `src/infrastructure`        | Port implementations (SDKs, APIs).       | Core, `src/lib/env.ts`          |
+| **Feature slice**    | `src/features/<f>`          | One feature, end to end.                 | Core, Infrastructure types, lib |
+| **Composition Root** | `src/app/api/**/route.ts`   | Zod validation, DI, HTTP entry points.   | Everything                      |
+| **UI**               | `src/app`, `src/components` | Pages, layout, shadcn/ui.                | Features, lib, constants        |
 
 ## Project Structure
 
 ```text
 src/
-├── app/
-│   ├── api/                    # Route Handlers (Composition Root)
+├── app/                          # Routing only
+│   ├── api/                      # Route Handlers (Composition Root)
 │   │   ├── chat/route.ts
-│   │   └── notion/route.ts
-│   ├── _components/            # Feature-specific UI (e.g. ChatInterface)
-│   ├── page.tsx                # Pages
-│   └── layout.tsx
+│   │   └── contact/route.ts
+│   ├── page.tsx  contact/  settings/
+│   ├── layout.tsx  error.tsx  loading.tsx  not-found.tsx
 │
-├── components/
-│   ├── ui/                     # shadcn/ui primitives
-│   ├── app-sidebar.tsx         # Layout components
-│   └── global-header.tsx
+├── core/                         # Pure TypeScript — no React, Next.js, or SDKs
+│   ├── domain/                   # message.entity.ts, ai-generate-options.vo.ts,
+│   │                             # notion-page-ref.vo.ts, domain.error.ts
+│   ├── ports/                    # IAIGateway, INotionRecordWriter
+│   └── use-cases/                # CreateNotionRecordUseCase (generic)
 │
-├── core/                       # Pure TypeScript — no React, Next.js, or SDKs
-│   ├── domain/                 # Entities, value objects, domain validation
-│   │   ├── message.entity.ts
-│   │   ├── ai-generate-options.vo.ts
-│   │   └── message.validation.ts
-│   ├── ports/                  # Interfaces (IAIGateway, INotionRecordWriter, …)
-│   └── use-cases/              # Business logic (SendMessageUseCase, …)
+├── infrastructure/               # External service adapters
+│   ├── gemini/                   # IAIGateway implementation
+│   └── notion/                   # INotionRecordWriter implementation (generic)
 │
-├── infrastructure/             # External service adapters
-│   ├── gemini/                 # IAIGateway implementation
-│   └── notion/                 # INotionRecordWriter implementation
+├── features/                     # Vertical slices — delete a folder to remove one
+│   ├── chat/
+│   │   ├── chat.config.ts        # model id + display label (single source)
+│   │   ├── chat.schema.ts        # Zod request schema + client types
+│   │   ├── domain/               # message.validation.ts
+│   │   ├── use-cases/            # send-message.use-case.ts
+│   │   ├── api/                  # chat.api.ts, use-chat.ts
+│   │   ├── hooks/                # use-chat-stream.ts
+│   │   └── components/
+│   └── contact/
+│       ├── contact.schema.ts
+│       ├── domain/               # contact-submission.entity.ts
+│       ├── notion/               # contact-database.config.ts (field mapping)
+│       ├── api/                  # contact.api.ts, use-contact.ts
+│       └── components/
+│
+├── components/                   # Shared UI
+│   ├── ui/                       # shadcn/ui primitives
+│   ├── app-sidebar.tsx  global-header.tsx  theme-provider.tsx
 │
 ├── lib/
-│   ├── api/                    # apiClient, endpoint wrappers, React Query hooks
-│   ├── validators/             # Zod schemas
-│   └── utils.ts                # cn() and shared helpers
+│   ├── api/api-client.ts         # apiGet / apiPost / apiPostStream + ApiError
+│   ├── env.ts                    # lazy, validated server env access
+│   ├── route-error.ts            # thrown value → HTTP response
+│   ├── navigation.ts  utils.ts
+│   └── zod/zod-config.ts         # global Japanese Zod error map
 │
-├── constants/                  # Paths, labels, sidebar config
-├── providers/                  # ReactQueryProvider, ThemeProvider
-└── types/                      # API request/response types
+├── constants/                    # app-config.ts, path.ts, sidebar.tsx, labels.ts
+├── hooks/                        # use-mobile.ts
+└── providers/                    # ReactQueryProvider
 ```
 
 ## Related Skills

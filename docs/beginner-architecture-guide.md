@@ -45,37 +45,56 @@ UI → React Query → /api/* → Use Case → Infrastructure
 
 ## 3. フォルダ構成：どこに何があるか
 
+このプロジェクトには**2つの軸**があります。
+
+- **レイヤー**（どんな種類のコードか）… `domain` / `ports` / `use-cases` / `infrastructure`
+- **スライス**（どの機能のものか）… `features/chat` / `features/contact`
+
 ```text
 src/
-├── app/                    # 画面と API の入口
+├── app/                    # ルーティングだけ。画面と API の入口
 │   ├── page.tsx            # トップページ（/）
-│   ├── _components/        # 機能ごとの UI（ChatInterface など）
 │   └── api/                # Route Handler（Composition Root）
 │
-├── components/ui/          # shadcn/ui（ボタン、入力欄など部品）
-│
-├── core/                   # ★ ビジネスの中心（外部ライブラリ禁止）
-│   ├── domain/             # データの形（Entity）
+├── core/                   # ★ 機能に依存しない共有カーネル（外部ライブラリ禁止）
+│   ├── domain/             # 共通の Entity・値オブジェクト・DomainError
 │   ├── ports/              # インターフェース（約束）
-│   └── use-cases/          # ビジネスロジック
+│   └── use-cases/          # 汎用のビジネスロジック
 │
-├── infrastructure/         # 外部サービスの具体実装
+├── infrastructure/         # 外部サービスの具体実装（機能に依存しない）
 │   ├── gemini/
 │   └── notion/
 │
+├── features/               # ★ 機能のタテ切り。フォルダごと消せば機能が消える
+│   ├── chat/               #   domain / use-cases / api / hooks / components
+│   └── contact/
+│
+├── components/             # 共通 UI（components/ui は shadcn/ui）
+│
 └── lib/
-    ├── api/                # フロントから API を呼ぶコード
-    └── validators/         # Zod スキーマ（入力チェック）
+    ├── api/api-client.ts   # フロントから API を呼ぶ共通クライアント
+    ├── env.ts              # サーバー側の環境変数（遅延バリデーション）
+    └── route-error.ts      # 例外 → HTTP レスポンス変換
 ```
+
+**なぜ `features/` があるのか：**
+新しいプロジェクトを始めるとき、サンプル機能（Chat・Contact）を消したくなります。
+機能が `core` にも `lib` にも `app` にも散らばっていると「どこまで消していいか」が分かりません。
+`features/chat/` を丸ごと削除 → 対応する `app/api/chat/` と `constants/sidebar.tsx` の1行を消す、
+それだけで機能が完全に消えるようにしてあります。
+
+逆に `core/` と `infrastructure/` は**機能に依存しません**。
+Notion アダプタは「どんなレコードでも書ける」汎用実装なので、Contact 機能を消しても残ります。
 
 **初心者が最初に読む順番（Chat 機能）：**
 
 1. `src/app/page.tsx` — 何が表示されるか
-2. `src/app/_components/chat-interface.tsx` — ユーザー操作
-3. `src/lib/api/queries/useChat.ts` — API 呼び出し
-4. `src/app/api/chat/route.ts` — サーバー入口
-5. `src/core/use-cases/send-message.use-case.ts` — ビジネスロジック
-6. `src/infrastructure/gemini/gemini-chat.gateway.ts` — Gemini 連携
+2. `src/features/chat/components/chat-interface.tsx` — 画面の組み立て
+3. `src/features/chat/hooks/use-chat-stream.ts` — ユーザー操作と状態管理
+4. `src/features/chat/api/use-chat.ts` — API 呼び出し
+5. `src/app/api/chat/route.ts` — サーバー入口
+6. `src/features/chat/use-cases/send-message.use-case.ts` — ビジネスロジック
+7. `src/infrastructure/gemini/gemini-chat.gateway.ts` — Gemini 連携
 
 ---
 
@@ -86,20 +105,37 @@ src/
 **役割：** アプリが扱うデータを TypeScript の型で表現する。  
 React も Next.js も Gemini も import しない、**純粋な TypeScript だけ**。
 
-```10:35:src/core/domain/message.entity.ts
+```typescript
+// src/core/domain/message.entity.ts
 export interface Message {
-  id: string;
-  role: MessageRole;
-  content: string;
-  createdAt: Date;
-  metadata?: Record<string, unknown>;
+  id: string
+  role: MessageRole
+  content: string
+  createdAt: Date
+  metadata?: Record<string, unknown>
 }
 ```
 
 `Message` は「チャットの1メッセージがどんな形か」を定義しています。  
 `createMessage()` はその形のオブジェクトを作る工場関数です。
 
+ドメインのルール違反は `DomainError` を継承した例外で表します。
+
+```typescript
+// src/features/chat/domain/message.validation.ts
+import { DomainError } from "@/core/domain/domain.error"
+
+export class InvalidMessageHistoryError extends DomainError {}
+```
+
+`DomainError` を継承しておくと、Route Handler 側の `handleRouteError` が
+**自動的に HTTP 400 に変換**してくれます。新しいエラーを足しても Route の修正は不要です。
+
 **読み方のコツ：** Domain ファイルは「名詞の定義」。ロジックは少なめ、型と factory が中心。
+
+**`core/domain` と `features/*/domain` の使い分け：**
+複数の機能で使うものは `core/domain`（`Message` は AI 機能なら全部使う）。
+1つの機能でしか使わないものは `features/<機能>/domain`（`ContactSubmission` は Contact だけ）。
 
 ---
 
@@ -108,17 +144,15 @@ export interface Message {
 **役割：** 外部サービス（AI、DB など）に対する**約束**を interface で書く。  
 実装は書かない。「こういうメソッドがあれば動く」という契約書。
 
-```50:76:src/core/ports/ai-gateway.port.ts
+```typescript
+// src/core/ports/ai-gateway.port.ts
 export interface IAIGateway {
   generateStream(
     messages: Message[],
-    options?: AIGenerateOptions
-  ): Promise<ReadableStream<string>>;
+    options?: AIGenerateOptions,
+  ): Promise<ReadableStream<string>>
 
-  generate(
-    messages: Message[],
-    options?: AIGenerateOptions
-  ): Promise<string>;
+  generate(messages: Message[], options?: AIGenerateOptions): Promise<string>
 }
 ```
 
@@ -134,43 +168,51 @@ Use Case は `GeminiGateway` ではなく `IAIGateway` だけを知っていま�
 **役割：** 「メッセージを送って AI から返答をもらう」など、アプリ固有の処理手順を書く。  
 Port（interface）だけに依存し、Gemini SDK などには直接触らない。
 
-```47:68:src/core/use-cases/send-message.use-case.ts
+```typescript
+// src/features/chat/use-cases/send-message.use-case.ts
 export class SendMessageUseCase {
   constructor(private readonly aiGateway: IAIGateway) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
-    this.validateInput(input);
+    assertValidMessageHistory(input.messages)
 
     const stream = await this.aiGateway.generateStream(
       input.messages,
-      input.options
-    );
+      input.options,
+    )
 
-    return { stream };
+    return { stream }
   }
+}
 ```
 
 **3つのポイント：**
 
 1. **constructor で Port を受け取る** — 外から注入（DI）される
 2. **`execute()` が入口** — 「このユースケースを実行する」メソッド
-3. **バリデーションもここ** — 「ユーザーメッセージが1つ以上必要」などのルール
+3. **ドメインルールの検証もここ** — 「ユーザーメッセージが1つ以上必要」などのルール
 
-Notion の例も同じパターンです。非常にシンプルな Use Case です。
+Notion の例も同じパターンです。こちらは機能に依存しない汎用 Use Case なので `core/` にあります。
 
-```4:11:src/core/use-cases/create-notion-record.use-case.ts
-export class CreateNotionRecordUseCase<
-  TRecord extends Record<string, unknown>,
-> {
-  constructor(private readonly writer: INotionRecordWriter<TRecord>) {}
+```typescript
+// src/core/use-cases/create-notion-record.use-case.ts
+export class CreateNotionRecordUseCase<TRecord> {
+  constructor(
+    private readonly writer: INotionRecordWriter<TRecord>,
+    private readonly validate?: RecordValidator<TRecord>,
+  ) {}
 
   async execute(record: TRecord): Promise<NotionPageRef> {
-    return this.writer.create(record);
+    this.validate?.(record)
+    return this.writer.create(record)
   }
 }
 ```
 
-**読み方のコツ：** Use Case は「if 文やルール + Port の呼び出し」。UI や HTTP のことは書いていない。
+「どんなレコードを書くか」も「どう検証するか」も外から渡すので、
+Contact 以外のフォームでもそのまま使い回せます。
+
+**読み方のコツ：** Use Case は「ルールの検証 + Port の呼び出し」。UI や HTTP のことは書いていない。
 
 ---
 
@@ -178,25 +220,31 @@ export class CreateNotionRecordUseCase<
 
 **役割：** Port の interface を**実際に実装**する。Gemini SDK、Notion SDK などをここで使う。
 
-```29:46:src/infrastructure/gemini/gemini-chat.gateway.ts
+```typescript
+// src/infrastructure/gemini/gemini-chat.gateway.ts
 export class GeminiGateway implements IAIGateway {
-  private client: GoogleGenerativeAI;
-
-  constructor(apiKey?: string) {
-    this.client = GeminiClientFactory.create(apiKey);
+  async generateStream(messages: Message[], options?: AIGenerateOptions) {
+    const { chat, prompt } = this.prepareChat(messages, options)
+    const result = await chat.sendMessageStream(prompt)
+    // ReadableStream に詰め替えて返す
   }
 
-  private convertMessagesToGeminiFormat(messages: Message[]): Content[] {
+  /** Domain の Message を Gemini の Content 形式に翻訳する */
+  private static toGeminiContents(messages: Message[]): Content[] {
     return messages
-      .filter((msg) => msg.role !== "system")
-      .map((msg) => ({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.content }],
-      }));
+      .filter((message) => message.role !== "system")
+      .map((message) => ({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [{ text: message.content }],
+      }))
   }
+}
 ```
 
 `implements IAIGateway` — Port の約束を守っている、という意味です。
+
+ストリーミング版と一括取得版でモデル設定がズレないよう、共通部分は `prepareChat()` に
+まとめてあります。**同じ設定を2箇所に書かない**のは、こういう「翻訳係」で特に大事です。
 
 **読み方のコツ：** Infrastructure は「SDK との翻訳係」。Domain の `Message` を Gemini の `Content` 形式に変換している。
 
@@ -207,55 +255,64 @@ export class GeminiGateway implements IAIGateway {
 **役割：** HTTP リクエストを受け取り、Zod で入力チェックし、Infrastructure を作って Use Case に渡す。  
 **ここだけ**が Infrastructure の具体クラスを `new` してよい場所です。
 
-```7:26:src/app/api/chat/route.ts
+```typescript
+// src/app/api/chat/route.ts
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const validatedInput = sendMessageInputSchema.parse(body)
+    const { stream, messages, options } = chatRequestSchema.parse(
+      await req.json(),
+    )
 
-    const aiGateway = createGeminiGateway()
-    const sendMessageUseCase = new SendMessageUseCase(aiGateway)
+    const useCase = new SendMessageUseCase(createGeminiGateway())
 
-    if (validatedInput.stream) {
-      const { stream } = await sendMessageUseCase.execute({
-        messages: validatedInput.messages,
-        options: validatedInput.options,
-      })
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Transfer-Encoding": "chunked",
-        },
-      })
+    if (!stream) {
+      const response = await useCase.executeNonStreaming({ messages, options })
+      return NextResponse.json({ response })
     }
+
+    const { stream: body } = await useCase.execute({ messages, options })
+
+    return new Response(body, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    })
+  } catch (error) {
+    return handleRouteError(error, "POST /api/chat")
+  }
+}
 ```
 
 **流れ：**
 
 1. リクエスト body を JSON で取得
-2. Zod スキーマで検証（`sendMessageInputSchema`）
+2. Zod スキーマで検証（`chatRequestSchema`）
 3. `createGeminiGateway()` で Infrastructure を生成
-4. `new SendMessageUseCase(aiGateway)` で Use Case に注入
+4. `new SendMessageUseCase(...)` で Use Case に注入
 5. `execute()` を呼んで結果を HTTP レスポンスとして返す
+6. 例外は必ず `handleRouteError()` に渡す
 
-Zod スキーマは `src/lib/validators/` に置いています。
+`handleRouteError()` は `ZodError` と `DomainError` を 400、それ以外を 500 に振り分けます。
+**本番環境では 500 の詳細メッセージを隠す**ので、SDK の内部情報がクライアントに漏れません。
 
-```12:24:src/lib/validators/chat.schema.ts
-export const sendMessageInputSchema = z.object({
-  messages: z.array(messageSchema).min(1, "At least one message is required"),
-  options: z
-    .object({
-      temperature: z.number().min(0).max(2).optional(),
-      maxTokens: z.number().positive().optional(),
-      topP: z.number().min(0).max(1).optional(),
-      model: z.string().optional(),
-      systemPrompt: z.string().optional(),
-    })
-    .optional(),
+Zod スキーマは機能ごとに `src/features/<機能>/<機能>.schema.ts` に置きます。
+
+```typescript
+// src/features/chat/chat.schema.ts
+export const chatRequestSchema = z.object({
+  messages: z.array(messageSchema).min(1),
+  options: generateOptionsSchema.optional(),
   stream: z.boolean().optional().default(true),
 })
 ```
+
+**Zod とドメイン検証の使い分け：**
+
+| 種類                      | どこで                 | 例                     |
+| ------------------------- | ---------------------- | ---------------------- |
+| 形式チェック（HTTP 境界） | Zod / Route Handler    | メールの形式、必須項目 |
+| ビジネスルール            | Domain 関数 / Use Case | メッセージは10文字以上 |
 
 **読み方のコツ：** Route Handler は「配線係」。ビジネスロジックは書かず、Use Case に任せる。
 
@@ -265,44 +322,43 @@ export const sendMessageInputSchema = z.object({
 
 **役割：** ブラウザ上の React コンポーネントが、サーバーの `/api/*` を呼ぶためのコード。
 
-#### ① API ラッパー（`lib/api/chat.ts`）
+#### ① 共通クライアント（`lib/api/api-client.ts`）
 
-```20:32:src/lib/api/chat.ts
-  sendMessageStream: async (
-    data: PostChatMessageRequest,
-  ): Promise<Response> => {
-    const baseUrl = apiClient.defaults.baseURL ?? ""
-    const url = `${baseUrl}/api/chat`
-    return fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ ...data, stream: true }),
-    })
-  },
+`apiGet` / `apiPost` / `apiPostStream` の3つだけを使います。
+どれも失敗時に **サーバーが返した `{ error: "..." }` のメッセージ**を持った `ApiError` を投げるので、
+`toast.error(error.message)` がそのまま使えます。
+
+#### ② 機能ごとの API ラッパー（`features/chat/api/chat.api.ts`）
+
+```typescript
+const CHAT_ENDPOINT = "/api/chat"
+
+export const chatApi = {
+  sendMessageComplete: (input: SendChatMessageInput) =>
+    apiPost<ChatCompletionResponse>(CHAT_ENDPOINT, { ...input, stream: false }),
+
+  sendMessageStream: (input: SendChatMessageInput) =>
+    apiPostStream(CHAT_ENDPOINT, { ...input, stream: true }),
+}
 ```
 
 ストリーミングは Axios ではなく `fetch` を使っています（Axios はレスポンス全体を待ってしまうため）。
+その差分は `apiPostStream` の中に隠れているので、呼び出し側は意識しません。
 
-#### ② React Query フック（`lib/api/queries/useChat.ts`）
+#### ③ React Query フック（`features/chat/api/use-chat.ts`）
 
-```43:49:src/lib/api/queries/useChat.ts
-export const useSendMessageStream = (
-  options?: UseSendMessageStreamOptions,
-) => {
-  return useMutation({
-    mutationFn: chatApi.sendMessageStream,
-    ...options,
-  })
+```typescript
+export function useSendMessageStream(
+  options?: UseMutationOptions<Response, Error, SendChatMessageInput>,
+) {
+  return useMutation({ mutationFn: chatApi.sendMessageStream, ...options })
 }
 ```
 
 `useMutation` は「ボタンを押したときに API を呼ぶ」パターン向け。  
 `isPending`（読み込み中）や `error` などの状態も自動管理してくれます。
 
-**読み方のコツ：** `lib/api/` は「フロント専用の API クライアント」。Infrastructure は import しない。
+**読み方のコツ：** `features/*/api/` は「フロント専用の API クライアント」。Infrastructure は import しない。
 
 ---
 
@@ -310,56 +366,54 @@ export const useSendMessageStream = (
 
 **役割：** 見た目と操作。Use Case や Gemini SDK は直接呼ばない。
 
-```17:57:src/app/_components/chat-interface.tsx
+状態を持つロジックは**カスタムフックに逃がす**のがこのプロジェクトの流儀です。
+`ChatInterface` は「並べるだけ」になっています。
+
+```tsx
+// src/features/chat/components/chat-interface.tsx
 export function ChatInterface() {
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [inputValue, setInputValue] = React.useState("");
-  const { mutateAsync: sendMessage, isPending: isLoading } = useSendMessageStream();
+  const { messages, isPending, sendMessage } = useChatStream()
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+  return (
+    <div className="...">
+      <ChatPanelHeader />
+      <ScrollArea className="flex-1 p-6">
+        {messages.map((message) => (
+          <ChatMessage key={message.id} message={message} />
+        ))}
+      </ScrollArea>
+      <ChatComposer onSubmit={sendMessage} isPending={isPending} />
+    </div>
+  )
+}
+```
 
-    const userContent = inputValue.trim();
-    setInputValue("");
+ストリームの読み取りは `useChatStream` が担当します。
 
-    const userMessage = createChatMessage("user", userContent);
-    const newHistory = [...messages, userMessage];
-    setMessages(newHistory);
+```typescript
+// src/features/chat/hooks/use-chat-stream.ts
+const reader = response.body.getReader()
+const decoder = new TextDecoder()
+let answer = ""
 
-    try {
-      const assistantMessage = createChatMessage("assistant", "");
-      setMessages((prev) => [...prev, assistantMessage]);
+while (true) {
+  const { done, value } = await reader.read()
+  if (done) break
 
-      const response = await sendMessage({
-        messages: newHistory,
-        options: {
-          model: "gemini-2.0-flash-exp",
-          temperature: 0.7,
-        },
-      });
+  answer += decoder.decode(value, { stream: true })
+  updateMessage(placeholder.id, answer)
+}
 ```
 
 **UI がやっていること：**
 
-1. 入力値を state に保持
-2. `createChatMessage()` で Domain の Message を作成
-3. `useSendMessageStream()` で API を呼ぶ
-4. 返ってきたストリームを読みながら画面を更新
+1. `useChatStream()` から `messages` と `sendMessage` を受け取る
+2. `ChatComposer` が入力値を持ち、送信時に `sendMessage(text)` を呼ぶ
+3. フックが Domain の `Message` を作り、API を呼び、ストリームを読みながら state を更新
+4. `messages` が変わるたびに再描画される
 
-`createChatMessage` は Domain の `createMessage` をラップしたヘルパーです。
-
-```7:12:src/lib/chat-utils.ts
-export function createChatMessage(
-  role: "user" | "assistant" | "system",
-  content: string,
-  metadata?: Record<string, unknown>
-) {
-  return createMessage(role, content, undefined, metadata);
-}
-```
-
-**読み方のコツ：** UI ファイルの先頭に `"use client"` があるのは、React の hooks を使うため。
+**読み方のコツ：** UI ファイルの先頭に `"use client"` があるのは、React の hooks を使うため。  
+逆に `page.tsx` に `"use client"` が無いのは、Server Component のままでよいからです。
 
 ---
 
@@ -368,30 +422,33 @@ export function createChatMessage(
 ユーザーがメッセージを送って AI が返答するまで、ファイルを順に辿ります。
 
 ```
-[1] page.tsx
+[1] app/page.tsx
       ↓ ChatInterface を表示
-[2] chat-interface.tsx
-      ↓ ユーザーが送信ボタンを押す
-      ↓ createChatMessage() で Message を作成
+[2] features/chat/components/chat-interface.tsx
+      ↓ ChatComposer で送信ボタンが押される
+[3] features/chat/hooks/use-chat-stream.ts
+      ↓ createMessage() で Message を作成
       ↓ useSendMessageStream() を呼ぶ
-[3] useChat.ts
+[4] features/chat/api/use-chat.ts
       ↓ chatApi.sendMessageStream() を実行
-[4] chat.ts
+[5] features/chat/api/chat.api.ts → lib/api/api-client.ts
       ↓ fetch POST /api/chat
-[5] api/chat/route.ts
-      ↓ Zod で入力チェック
+[6] app/api/chat/route.ts
+      ↓ Zod で入力チェック（chatRequestSchema）
       ↓ createGeminiGateway() + new SendMessageUseCase()
       ↓ useCase.execute()
-[6] send-message.use-case.ts
-      ↓ validateInput()
+[7] features/chat/use-cases/send-message.use-case.ts
+      ↓ assertValidMessageHistory()
       ↓ aiGateway.generateStream()
-[7] gemini-chat.gateway.ts
+[8] infrastructure/gemini/gemini-chat.gateway.ts
       ↓ Google Gemini API を呼ぶ
       ↓ ReadableStream を返す
-[5] route.ts
+[6] route.ts
       ↓ Response として stream を返す
+[3] use-chat-stream.ts
+      ↓ stream を少しずつ読んで state 更新
 [2] chat-interface.tsx
-      ↓ stream を1文字ずつ読んで画面更新
+      ↓ 再描画
 ```
 
 ---
@@ -410,7 +467,9 @@ UI / API → Use Case → Port ← Infrastructure
 - **Use Case** は Domain と Port だけに依存
 - **Infrastructure** は Port を実装する（外側）
 
-`core/` から `infrastructure/` を import してはいけない、というルールの理由です。
+`core/` から `infrastructure/` を import してはいけない、というルールの理由です。  
+同じ理由で、`core/` と `infrastructure/` は `features/` を import できません
+（機能を消したら壊れてしまうため）。
 
 ### 原則 2：抽象に依存する（DIP）
 
@@ -428,7 +487,7 @@ AI プロバイダーを Gemini → OpenAI に変えるとき、変えるのは 
 
 ```typescript
 // api/chat/route.ts で差し替えるだけ
-const aiGateway = createOpenAIGateway() // 以前は createGeminiGateway()
+const useCase = new SendMessageUseCase(createOpenAIGateway())
 ```
 
 ### 原則 3：組み立ては1か所（Composition Root）
@@ -441,13 +500,16 @@ Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ
 
 ## 7. よくある間違い
 
-| 間違い                                   | なぜダメか                   | 正しい場所                          |
-| ---------------------------------------- | ---------------------------- | ----------------------------------- |
-| コンポーネントで Gemini SDK を直接呼ぶ   | UI が外部サービスに縛られる  | Infrastructure                      |
-| Use Case で `process.env` を読む         | ビジネスロジックが環境に依存 | Route Handler または Infrastructure |
-| `core/` から `infrastructure/` を import | 依存の方向が逆               | Route Handler で DI                 |
-| ビジネスルールを Route Handler に書く    | ロジックが散らばる           | Use Case                            |
-| Zod なしで body を Use Case に渡す       | 不正な入力が内部に入る       | Route Handler + validators          |
+| 間違い                                    | なぜダメか                       | 正しい場所                        |
+| ----------------------------------------- | -------------------------------- | --------------------------------- |
+| コンポーネントで Gemini SDK を直接呼ぶ    | UI が外部サービスに縛られる      | Infrastructure                    |
+| Use Case で `process.env` を読む          | ビジネスロジックが環境に依存     | `src/lib/env.ts` の `serverEnv()` |
+| `core/` から `infrastructure/` を import  | 依存の方向が逆                   | Route Handler で DI               |
+| `core/` から `features/` を import        | 機能を消すと共有部分が壊れる     | 共有したいなら `core/` に置く     |
+| ビジネスルールを Route Handler に書く     | ロジックが散らばる               | Use Case                          |
+| Zod なしで body を Use Case に渡す        | 不正な入力が内部に入る           | Route Handler + 機能の schema     |
+| Route Handler で `try/catch` を書き忘れる | 例外がそのまま漏れる             | `handleRouteError()` で終わらせる |
+| モデル名を UI にベタ書きする              | Gateway 側の設定と二重管理になる | `features/chat/chat.config.ts`    |
 
 ---
 
@@ -455,15 +517,19 @@ Infrastructure のインスタンス生成は **`src/app/api/**/route.ts` だけ
 
 Chat と同じパターンで、次の順番でファイルを作ります。
 
-| 順番 | 作るもの       | 例                                                      |
-| ---- | -------------- | ------------------------------------------------------- |
-| 1    | Entity         | `core/domain/feedback.entity.ts`                        |
-| 2    | Port           | `core/ports/feedback-repository.port.ts`                |
-| 3    | Use Case       | `core/use-cases/submit-feedback.use-case.ts`            |
-| 4    | Infrastructure | `infrastructure/database/...`                           |
-| 5    | Route Handler  | `app/api/feedback/route.ts`                             |
-| 6    | API + Hook     | `lib/api/feedback.ts`, `lib/api/queries/useFeedback.ts` |
-| 7    | UI             | `app/_components/feedback-form.tsx`                     |
+| 順番 | 作るもの        | 例                                               |
+| ---- | --------------- | ------------------------------------------------ |
+| 1    | Entity + ルール | `features/feedback/domain/feedback.entity.ts`    |
+| 2    | Port            | `features/feedback/ports/...port.ts`             |
+| 3    | Use Case        | `features/feedback/use-cases/...use-case.ts`     |
+| 4    | Infrastructure  | `infrastructure/<provider>/...`                  |
+| 5    | Zod スキーマ    | `features/feedback/feedback.schema.ts`           |
+| 6    | Route Handler   | `app/api/feedback/route.ts`                      |
+| 7    | API + Hook      | `features/feedback/api/`                         |
+| 8    | UI              | `features/feedback/components/feedback-form.tsx` |
+
+Port や Entity を複数機能で共有したくなったら、そのときに `core/` へ引き上げます。
+最初から `core/` に置かないのがコツです。
 
 詳細は [clean-architecture-extension Skill](../.cursor/skills/clean-architecture-extension/SKILL.md) を参照。
 
@@ -480,6 +546,10 @@ pnpm dev
 ブラウザで [http://localhost:3000](http://localhost:3000) を開き、  
 DevTools の **Network** タブで `POST /api/chat` を見ながらコードを追うと理解が深まります。
 
+環境変数を設定していなくてもアプリは起動します。
+未設定のまま Chat を送ると `Environment variable "GEMINI_API_KEY" is not set.`
+という**変数名入りのエラー**が返るので、何を設定すればよいかすぐ分かります。
+
 テストを読むのもおすすめです。
 
 ```bash
@@ -488,6 +558,7 @@ pnpm test
 
 `src/infrastructure/notion/notion-property.builder.spec.ts` など、  
 Infrastructure 層の単体テストが「Port の実装が正しいか」を確認する良い例です。
+テストは対象コードと同じフォルダに `*.spec.ts` として置いています。
 
 ---
 
@@ -504,11 +575,12 @@ Infrastructure 層の単体テストが「Port の実装が正しいか」を確
 
 ## まとめ
 
-- **Domain** = データの形
+- **Domain** = データの形とビジネスルール
 - **Port** = 外部サービスへの約束（interface）
 - **Use Case** = ビジネスロジック（Port だけ知っている）
 - **Infrastructure** = Port の具体実装（SDK を使う）
 - **Route Handler** = 部品を組み立てる唯一の場所
-- **UI + lib/api** = ユーザー操作と API 呼び出し
+- **features/** = 機能のタテ切り。消せば機能ごと消える
+- **core / infrastructure** = 機能に依存しない共有部分。消えない
 
 コードを読むときは **UI から下に降りていく**（上記セクション 5 の順番）と迷いにくいです。

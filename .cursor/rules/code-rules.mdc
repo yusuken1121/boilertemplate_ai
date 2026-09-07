@@ -32,10 +32,14 @@ Before writing code, read **architectural-rules** and **architecture-overview**.
 
 # Quick Boundaries
 
-- `src/core` — pure TypeScript, no SDKs, no React, no imports from infrastructure/app/lib
-- `src/infrastructure` — implements ports, may use SDKs
+- `src/core` — pure TypeScript shared kernel; no SDKs, no React, no imports from infrastructure/features/app/lib
+- `src/infrastructure` — implements ports, may use SDKs; feature-agnostic (never imports `src/features`)
+- `src/features/<feature>` — one vertical slice: domain, use case, schema, api hooks, components
 - `src/app/api/**/route.ts` — Zod validation + DI (only place to instantiate adapters)
-- `src/lib/api` — React Query hooks + Axios; no infrastructure imports
+- `src/lib` — HTTP client, env access, error mapping; no feature or infrastructure imports
 - UI — calls server via React Query hooks only
+
+Secrets go through `serverEnv()` in `src/lib/env.ts`. Domain errors extend
+`DomainError`; Route Handlers always end in `handleRouteError(error, context)`.
 
 Full rules → `.cursor/skills/architectural-rules/SKILL.md`

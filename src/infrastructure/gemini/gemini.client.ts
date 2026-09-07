@@ -1,15 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { serverEnv } from "@/lib/env"
 
 export class GeminiClientFactory {
   static create(apiKey?: string): GoogleGenerativeAI {
-    const key = apiKey ?? process.env.GEMINI_API_KEY
-
-    if (!key) {
-      throw new Error(
-        "GEMINI_API_KEY is not set. Please provide it via environment variable or constructor parameter.",
-      )
-    }
-
-    return new GoogleGenerativeAI(key)
+    return new GoogleGenerativeAI(apiKey ?? serverEnv("GEMINI_API_KEY"))
   }
 }

@@ -2,12 +2,16 @@ import type { Client } from "@notionhq/client"
 import {
   toNotionPageUrl,
   type NotionPageRef,
-} from "../../core/domain/notion-page-ref"
-import type { INotionRecordWriter } from "../../core/ports/notion-record-writer.port"
+} from "@/core/domain/notion-page-ref.vo"
+import type { INotionRecordWriter } from "@/core/ports/notion-record-writer.port"
 import type { NotionDatabaseConfig } from "./notion-field-mapping.types"
 import { NotionClientFactory } from "./notion-client.factory"
 import { NotionPropertyBuilder } from "./notion-property.builder"
 import { NotionWriteError } from "./notion-write.error"
+
+type NotionCreatePageProperties = Parameters<
+  Client["pages"]["create"]
+>[0]["properties"]
 
 export class ConfigurableNotionGateway<
   TRecord,
@@ -27,15 +31,10 @@ export class ConfigurableNotionGateway<
     try {
       const response = await this.client.pages.create({
         parent: { database_id: this.config.databaseId },
-        properties: properties as Parameters<
-          Client["pages"]["create"]
-        >[0]["properties"],
+        properties: properties as NotionCreatePageProperties,
       })
 
-      return {
-        id: response.id,
-        url: toNotionPageUrl(response.id),
-      }
+      return { id: response.id, url: toNotionPageUrl(response.id) }
     } catch (error) {
       if (error instanceof NotionWriteError) {
         throw error

@@ -1,7 +1,7 @@
 ---
 name: react-query-api-pattern
 description: >-
-  Standard client-to-server pattern: React Query hook → lib/api wrapper →
+  Standard client-to-server pattern: React Query hook → feature api wrapper →
   Route Handler → Use Case. Use when wiring UI to backend or adding a new API
   endpoint.
 ---
@@ -11,15 +11,30 @@ description: >-
 Every client feature follows this pipeline:
 
 ```
-UI Component
-  → useMutation / useQuery hook     [src/lib/api/queries/]
-  → endpoint wrapper                [src/lib/api/<feature>.ts]
-  → POST /api/<feature>             [src/app/api/<feature>/route.ts]
-  → Use Case                        [src/core/use-cases/]
+UI Component                        [src/features/<f>/components/]
+  → useMutation / useQuery hook     [src/features/<f>/api/use-<f>.ts]
+  → endpoint wrapper                [src/features/<f>/api/<f>.api.ts]
+  → POST /api/<f>                   [src/app/api/<f>/route.ts]
+  → Use Case                        [src/features/<f>/use-cases/]
   → Infrastructure adapter          [src/infrastructure/]
 ```
 
 Do **not** use Server Actions. Do **not** call Use Cases or Infrastructure from components.
+
+## The HTTP client
+
+`src/lib/api/api-client.ts` exposes three helpers. All of them reject with an
+`ApiError` carrying **the server's own message** (Route Handlers answer failures
+with `{ error: string }`), so `error.message` is safe to show in a toast.
+
+| Helper                        | Use for                                      |
+| :---------------------------- | :------------------------------------------- |
+| `apiGet<TResponse>(url)`      | Reads                                        |
+| `apiPost<TResponse, TBody>()` | Writes with a buffered JSON response         |
+| `apiPostStream<TBody>()`      | Streaming responses — returns raw `Response` |
+
+Axios buffers the whole body, so streaming endpoints go through `apiPostStream`,
+which uses `fetch` while keeping error handling identical.
 
 ## Step-by-Step: Add a New Endpoint
 
@@ -28,95 +43,96 @@ Do **not** use Server Actions. Do **not** call Use Cases or Infrastructure from 
 `src/app/api/<feature>/route.ts`
 
 ```typescript
-import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
+import { NextResponse, type NextRequest } from "next/server"
 import { createSomeGateway } from "@/infrastructure/some"
-import { SomeUseCase } from "@/core/use-cases/some.use-case"
-
-const InputSchema = z.object({
-  /* fields */
-})
+import { SomeUseCase } from "@/features/<feature>/use-cases/some.use-case"
+import { someRequestSchema } from "@/features/<feature>/<feature>.schema"
+import { handleRouteError } from "@/lib/route-error"
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const validated = InputSchema.parse(body)
+    const input = someRequestSchema.parse(await req.json())
 
-    const gateway = createSomeGateway()
-    const useCase = new SomeUseCase(gateway)
-    const result = await useCase.execute(validated)
+    const useCase = new SomeUseCase(createSomeGateway())
+    const data = await useCase.execute(input)
 
-    return NextResponse.json({ success: true, data: result })
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    )
+    return handleRouteError(error, "POST /api/<feature>")
   }
 }
 ```
 
+`handleRouteError` maps `ZodError` and any `DomainError` to 400, everything else
+to 500 (hiding internals in production). Never hand-roll that mapping.
+
 ### 2. API wrapper
 
-`src/lib/api/<feature>.ts`
+`src/features/<feature>/api/<feature>.api.ts`
 
 ```typescript
-import { apiClient } from "./apiClient"
+import { apiPost } from "@/lib/api/api-client"
+
+const ENDPOINT = "/api/<feature>"
 
 export const someApi = {
-  create: async (data: SomeInput) => apiClient.post("/api/<feature>", data),
+  create: (data: SomeInput) => apiPost<SomeResponse, SomeInput>(ENDPOINT, data),
 }
 ```
 
-For streaming responses, use `fetch` directly (Axios buffers the full body):
+Streaming variant:
 
 ```typescript
-sendStream: async (data: SomeInput): Promise<Response> => {
-  const baseUrl = apiClient.defaults.baseURL ?? "";
-  return fetch(`${baseUrl}/api/<feature>`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, stream: true }),
-  });
-},
+import { apiPostStream } from "@/lib/api/api-client"
+
+sendStream: (data: SomeInput) => apiPostStream(ENDPOINT, { ...data, stream: true }),
 ```
 
 ### 3. React Query hook
 
-`src/lib/api/queries/useSome.ts`
+`src/features/<feature>/api/use-<feature>.ts`
 
 ```typescript
-import { useMutation } from "@tanstack/react-query"
-import { someApi } from "../some"
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
+import { someApi } from "./some.api"
 
-export const useCreateSome = () => useMutation({ mutationFn: someApi.create })
+export const someKeys = { all: ["some"] as const }
+
+export function useCreateSome(
+  options?: UseMutationOptions<SomeResponse, Error, SomeInput>,
+) {
+  return useMutation({ mutationFn: someApi.create, ...options })
+}
 ```
 
 ### 4. UI component
 
-`src/app/_components/some-form.tsx`
+`src/features/<feature>/components/some-form.tsx`
 
 ```tsx
 "use client"
 
-import { useCreateSome } from "@/lib/api/queries/useSome"
+import { useCreateSome } from "../api/use-some"
 
 export function SomeForm() {
-  const { mutate, isPending, isError, isSuccess } = useCreateSome()
+  const { mutate, isPending } = useCreateSome({
+    onError: (error) => toast.error(error.message),
+  })
   // ...
 }
 ```
 
+Keep stateful logic (streaming, multi-step flows) in a hook under
+`src/features/<feature>/hooks/` so components stay presentational —
+see `use-chat-stream.ts`.
+
 ## Existing Examples
 
-| Feature         | Hook                     | Route         | UI              |
-| :-------------- | :----------------------- | :------------ | :-------------- |
-| Chat (stream)   | `useSendMessageStream`   | `/api/chat`   | `ChatInterface` |
-| Chat (complete) | `useSendMessageComplete` | `/api/chat`   | —               |
-| Notion write    | `useCreateNotionRecord`  | `/api/notion` | `ContactForm`   |
+| Feature         | Hook                     | Route          | UI              |
+| :-------------- | :----------------------- | :------------- | :-------------- |
+| Chat (stream)   | `useSendMessageStream`   | `/api/chat`    | `ChatInterface` |
+| Chat (complete) | `useSendMessageComplete` | `/api/chat`    | —               |
+| Contact         | `useSubmitContact`       | `/api/contact` | `ContactForm`   |
 
 ## Related Skills
 

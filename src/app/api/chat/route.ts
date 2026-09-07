@@ -1,33 +1,31 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { createGeminiGateway } from "@/infrastructure/gemini"
-import { SendMessageUseCase } from "@/core/use-cases/send-message.use-case"
-import { sendMessageRequestSchema } from "@/lib/validators/chat.schema"
+import { SendMessageUseCase } from "@/features/chat/use-cases/send-message.use-case"
+import { chatRequestSchema } from "@/features/chat/chat.schema"
 import { handleRouteError } from "@/lib/route-error"
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { stream, messages, options } = sendMessageRequestSchema.parse(body)
+    const { stream, messages, options } = chatRequestSchema.parse(
+      await req.json(),
+    )
 
     const useCase = new SendMessageUseCase(createGeminiGateway())
 
-    if (stream) {
-      const { stream: responseStream } = await useCase.execute({
-        messages,
-        options,
-      })
-
-      return new Response(responseStream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Transfer-Encoding": "chunked",
-        },
-      })
+    if (!stream) {
+      const response = await useCase.executeNonStreaming({ messages, options })
+      return NextResponse.json({ response })
     }
 
-    const text = await useCase.executeNonStreaming({ messages, options })
-    return NextResponse.json({ response: text })
+    const { stream: body } = await useCase.execute({ messages, options })
+
+    return new Response(body, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    })
   } catch (error) {
-    return handleRouteError(error, "/api/chat Route Handler")
+    return handleRouteError(error, "POST /api/chat")
   }
 }
