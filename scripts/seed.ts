@@ -1,7 +1,11 @@
 /**
  * Creates the first account so you can sign in.
  *
- * Run with `pnpm db:seed`. Safe to re-run: an existing email is left alone.
+ * Run with `pnpm db:seed`.
+ * Runs under `--conditions=react-server`: `src/lib/env.ts` imports
+ * `server-only`, which throws in a plain Node process. That guard exists to
+ * keep secrets out of the browser bundle — a server-side script is exactly
+ * what it is meant to allow, and the condition is how you say so. Safe to re-run: an existing email is left alone.
  * Override the defaults with SEED_EMAIL / SEED_PASSWORD / SEED_NAME.
  */
 try {

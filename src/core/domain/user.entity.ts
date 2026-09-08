@@ -23,9 +23,15 @@ export interface User {
   createdAt: Date
 }
 
-/** A user plus the secret needed to verify a password. Never leaves the server. */
+/**
+ * A user plus the secret needed to verify a password. Never leaves the server.
+ *
+ * `passwordHash` is null for accounts created through an OAuth provider: they
+ * have no password, and a sign-in attempt with one must be rejected rather
+ * than compared against an empty string.
+ */
 export interface UserWithCredentials extends User {
-  passwordHash: string
+  passwordHash: string | null
 }
 
 /** Strip the credential before a user crosses any boundary. */

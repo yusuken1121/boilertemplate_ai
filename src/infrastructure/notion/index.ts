@@ -3,6 +3,16 @@ import { ConfigurableNotionGateway } from "./configurable-notion.gateway"
 import type { NotionDatabaseConfig } from "./notion-field-mapping.types"
 
 export { ConfigurableNotionGateway } from "./configurable-notion.gateway"
+export {
+  ConfigurableNotionRepository,
+  createNotionRepository,
+} from "./configurable-notion.repository"
+export { NotionPropertyReader } from "./notion-property.reader"
+export {
+  NotionFilterBuilder,
+  UnsupportedNotionFilterError,
+} from "./notion-filter.builder"
+export { throttleNotion, withNotionRetry } from "./notion-throttle"
 export { NotionClientFactory } from "./notion-client.factory"
 export { NotionPropertyBuilder } from "./notion-property.builder"
 export { NotionWriteError } from "./notion-write.error"

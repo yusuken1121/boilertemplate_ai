@@ -7,7 +7,15 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       // Everything behind the auth wall is private; only public pages are listed.
       allow: "/",
-      disallow: ["/api/", "/settings", "/sign-in"],
+      disallow: [
+        "/api/",
+        "/settings",
+        "/audit",
+        "/sign-in",
+        "/sign-up",
+        "/forgot-password",
+        "/reset-password",
+      ],
     },
     sitemap: `${APP_CONFIG.url}/sitemap.xml`,
   }

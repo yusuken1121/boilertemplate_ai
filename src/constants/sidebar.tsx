@@ -1,4 +1,10 @@
-import { LogOutIcon, Mail, MessageSquare, Settings } from "lucide-react"
+import {
+  LogOutIcon,
+  Mail,
+  MessageSquare,
+  ScrollText,
+  Settings,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { UserRole } from "@/core/domain/user.entity"
 import { PATH } from "@/constants/path"
@@ -7,6 +13,7 @@ export const MENU_KEYS = {
   CHAT: "chat",
   CONTACT: "contact",
   SETTINGS: "settings",
+  AUDIT: "audit",
   LOGOUT: "logout",
 } as const
 
@@ -51,6 +58,13 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
     path: PATH.SETTINGS,
     icon: Settings,
   },
+  [MENU_KEYS.AUDIT]: {
+    label: "Audit log",
+    path: PATH.AUDIT,
+    icon: ScrollText,
+    activeColor: "text-amber-600 dark:text-amber-400",
+    roles: ["admin"],
+  },
   [MENU_KEYS.LOGOUT]: {
     label: "Sign out",
     icon: LogOutIcon,
@@ -61,5 +75,5 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
 export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT, MENU_KEYS.CONTACT]
 export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS]
 /** Items here are filtered by `roles` — see SidebarItemConfig. */
-export const adminSidebar: MenuKey[] = []
+export const adminSidebar: MenuKey[] = [MENU_KEYS.AUDIT]
 export const footerSidebar: MenuKey[] = [MENU_KEYS.LOGOUT]

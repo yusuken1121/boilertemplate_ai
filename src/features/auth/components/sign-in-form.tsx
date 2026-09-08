@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { Loader2, LogIn } from "lucide-react"
 
@@ -10,6 +11,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -29,7 +31,6 @@ import { credentialsSchema, type CredentialsInput } from "../auth.schema"
 const EMPTY_FORM: CredentialsInput = { email: "", password: "" }
 
 export function SignInForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
@@ -53,8 +54,18 @@ export function SignInForm() {
       return
     }
 
-    router.push(searchParams.get("callbackUrl") ?? PATH.HOME)
-    router.refresh()
+    /**
+     * A full document load, not `router.push`.
+     *
+     * The session only exists once the cookie is set, and every Server
+     * Component above this point rendered while it was absent. A client-side
+     * push reuses that cached signed-out tree, and pairing it with
+     * `router.refresh()` races: the refresh aborts the pending navigation and
+     * the browser stays on the sign-in page with a valid session.
+     *
+     * Signing in is exactly the moment a fresh render is worth a page load.
+     */
+    window.location.assign(searchParams.get("callbackUrl") ?? PATH.HOME)
   }
 
   return (
@@ -68,9 +79,15 @@ export function SignInForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
+          {/*
+            method="post" matters even though onSubmit preventDefaults: if the
+            JS chunk fails to load, the browser falls back to a native submit,
+            and the default GET puts the password in the URL and the history.
+          */}
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col gap-4"
+            method="post"
             noValidate
           >
             <FormField
@@ -132,6 +149,17 @@ export function SignInForm() {
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="flex-col gap-2 text-sm text-muted-foreground">
+        <Link href={PATH.FORGOT_PASSWORD} className="font-medium underline">
+          Forgot your password?
+        </Link>
+        <span>
+          No account?
+          <Link href={PATH.SIGN_UP} className="ml-1 font-medium underline">
+            Create one
+          </Link>
+        </span>
+      </CardFooter>
     </Card>
   )
 }

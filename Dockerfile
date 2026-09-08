@@ -38,5 +38,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 
-# The standalone output ships its own minimal server.
+# The standalone server is a bare Node process: it does NOT read .env files the
+# way `next dev` does. Supply the environment at run time —
+#   docker run -e AUTH_SECRET=... -e DATABASE_URL=... -e AUTH_TRUST_HOST=true
+# — or through compose `environment:` / your platform's secret store.
+#
+# Remember that NEXT_PUBLIC_* values were already inlined during `pnpm build`;
+# setting them here has no effect. Pass them as build args instead.
 CMD ["node", "server.js"]

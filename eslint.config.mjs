@@ -39,6 +39,11 @@ const eslintConfig = [
       "playwright-report/**",
       "test-results/**",
       "drizzle/**",
+      // Replacement files for `pnpm preset:minimal`. They are alternative
+      // versions of files that already exist, so linting them here would
+      // report duplicate-module and unused-import noise for code that is
+      // correct in the tree it gets copied into.
+      "presets/**",
       "next-env.d.ts",
     ],
   },
@@ -231,6 +236,7 @@ const eslintConfig = [
     ignores: [
       "src/lib/env.ts",
       "src/constants/app-config.ts",
+      "src/constants/runtime.ts",
       "src/features/*/*.config.ts",
       "src/lib/api/api-client.ts",
       "src/lib/route-error.ts",

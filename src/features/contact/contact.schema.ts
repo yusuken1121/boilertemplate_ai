@@ -26,3 +26,26 @@ export type ContactFormValues = z.infer<typeof contactFormSchema>
 
 /** Anonymous quota for POST /api/contact, keyed by client IP. */
 export const CONTACT_RATE_LIMIT = { limit: 5, windowMs: 60 * 60 * 1000 }
+
+/** Query string for GET /api/contact. */
+export const contactListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  cursor: z.string().optional(),
+})
+
+export type ContactListQuery = z.infer<typeof contactListQuerySchema>
+
+/** One stored submission as it crosses the wire — dates are strings in JSON. */
+export type ContactSubmissionDto = {
+  id: string
+  url: string
+  name: string
+  email: string
+  message: string
+  createdAt: string
+}
+
+export type ContactListDto = {
+  items: ContactSubmissionDto[]
+  nextCursor: string | null
+}

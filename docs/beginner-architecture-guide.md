@@ -327,6 +327,33 @@ export const chatRequestSchema = z.object({
 
 ---
 
+### 4-5b. トランザクション — 「2つの書き込みを1つにまとめる」
+
+「ユーザーを作る」と「監査ログを書く」は、**両方成功するか両方失敗するか**でなければ
+いけません。片方だけ成功すると、誰のものか分からないユーザーか、存在しないユーザーの
+記録が残ります。
+
+```typescript
+// src/features/auth/use-cases/register-user.use-case.ts
+const user = await this.unitOfWork.transaction(async (repos) => {
+  const created = await repos.users.create({ email, name, passwordHash })
+  await repos.auditLog.append({ actorId: created.id, action: "auth.sign_up" })
+  return created
+})
+
+// ★ トランザクションの「外」で
+await this.jobs.enqueue("email.welcome", { email: user.email })
+```
+
+**なぜメール送信が外なのか：** HTTP 通信はロールバックできません。あとで
+トランザクションが失敗しても、メールはもう届いています。しかも通信のあいだ
+ずっと DB のトランザクションが開いたままになり、相手が遅いだけで
+コネクションプールが枯渇します。
+
+だから外部との通信は「キューに積む」だけにして、ワーカーが後でやります。
+
+---
+
 ### 4-6. Client Data Layer — 「フロントから API を呼ぶ」
 
 **役割：** ブラウザ上の React コンポーネントが、サーバーの `/api/*` を呼ぶためのコード。
@@ -366,6 +393,24 @@ export function useSendMessageStream(
 
 `useMutation` は「ボタンを押したときに API を呼ぶ」パターン向け。  
 `isPending`（読み込み中）や `error` などの状態も自動管理してくれます。
+
+#### ④ 読み取りは useQuery（キャッシュキーが主役）
+
+書き込み（mutation）だけでなく、読み取りにも React Query を使います。
+
+```typescript
+// src/features/audit/api/use-audit.ts
+export const auditKeys = {
+  all: ["audit"] as const,
+  lists: () => [...auditKeys.all, "list"] as const,
+  list: (filters) => [...auditKeys.lists(), filters] as const,
+}
+```
+
+**キーを1か所で組み立てる理由：** データを更新したあとにキャッシュを捨てる
+（invalidate）とき、キーを手書きしていると必ずどれかを取りこぼします。
+`auditKeys.lists()` を無効化すればフィルタ違いも全部消える、という設計にしておくと
+「更新したのに画面が古いまま」が起きません。
 
 **読み方のコツ：** `features/*/api/` は「フロント専用の API クライアント」。Infrastructure は import しない。
 
@@ -555,6 +600,16 @@ pnpm dev
 ```
 
 `pnpm db:seed` が表示するメールアドレスとパスワードでサインインできます。
+`/sign-up` から自分でアカウントを作ることもできます。
+
+パスワード再設定は**メール送信の設定なしで試せます** — リセットリンクが
+ターミナルのログに出力されるので、それをブラウザに貼れば動作を確認できます。
+
+バックグラウンドジョブを動かすには、別のターミナルで：
+
+```bash
+pnpm worker
+```
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開き、  
 DevTools の **Network** タブで `POST /api/chat` を見ながらコードを追うと理解が深まります。

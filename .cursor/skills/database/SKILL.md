@@ -58,6 +58,42 @@ secret leaves the repository only where verifying it is the point.**
 Never call `getDb()` from a use case or a component. Only a repository touches
 Drizzle, and only a Route Handler constructs a repository.
 
+## Transactions (Unit of Work)
+
+Two writes that must both land go through `IUnitOfWork`:
+
+```typescript
+await unitOfWork.transaction(async (repos) => {
+  const user = await repos.users.create({ ... })
+  await repos.auditLog.append({ actorId: user.id, action: "auth.sign_up" })
+  return user
+})
+```
+
+Every repository handed to the callback is bound to the same transaction, so
+either all the writes land or none do. Throwing rolls back — which is why a use
+case should let its domain errors propagate rather than catching them inside.
+
+**Never do third-party I/O inside the callback.** An HTTP call cannot be rolled
+back, and it holds the transaction open for its whole duration. Enqueue a job
+and let the worker do the outside work — `RegisterUserUseCase` shows the shape.
+
+To add a repository to the transaction, add it to `Repositories` in
+`src/core/ports/unit-of-work.port.ts` and to `buildRepositories`. Repositories
+take a `DbExecutor` in the constructor so the same class works inside and
+outside a transaction.
+
+## Cursor pagination
+
+`DrizzleAuditLogRepository.list` is the reference implementation. Cursor, not
+offset: the table grows while it is being read, and `OFFSET` would skip or
+repeat rows as new entries land at the top.
+
+The cursor encodes `createdAt` **and** `id`, because a timestamp alone is not
+unique. It is base64 so callers cannot build one by hand and start depending on
+the ordering internals. The query fetches `limit + 1` rows to learn whether
+another page exists, instead of a `COUNT` over a table that only grows.
+
 ## Connection handling
 
 `getDb()` creates the client on first use, not at import time: a project that

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { DomainError } from "@/core/domain/domain.error"
+import { IS_PRODUCTION } from "@/constants/runtime"
 import { logger } from "@/lib/logger"
 import { RateLimitExceededError } from "@/lib/rate-limit"
 
 export type ApiErrorBody = { error: string }
-
-const isProduction = process.env.NODE_ENV === "production"
 
 /**
  * Translates any thrown value into a JSON error response.
@@ -44,7 +43,7 @@ export function handleRouteError(
   }
 
   const detail =
-    !isProduction && error instanceof Error ? error.message : undefined
+    !IS_PRODUCTION && error instanceof Error ? error.message : undefined
 
   return NextResponse.json(
     { error: detail ?? "Internal Server Error" },

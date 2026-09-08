@@ -1,3 +1,4 @@
+import "server-only"
 import { z } from "zod"
 
 /**
@@ -23,6 +24,18 @@ const serverEnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
   /** Auth.js — signing secret. Generate with `openssl rand -base64 32` */
   AUTH_SECRET: z.string().min(1),
+  /** OAuth (optional) — enabled only when both are present */
+  AUTH_GITHUB_ID: z.string().min(1),
+  AUTH_GITHUB_SECRET: z.string().min(1),
+  /** Transactional email. Unset falls back to the log sender. */
+  RESEND_API_KEY: z.string().min(1),
+  /** Shared rate limiting. Unset falls back to the in-memory limiter. */
+  UPSTASH_REDIS_REST_URL: z.string().min(1),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  /** Object storage (S3 / R2 / MinIO) */
+  S3_BUCKET: z.string().min(1),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
 })
 
 export type ServerEnvKey = keyof z.infer<typeof serverEnvSchema>

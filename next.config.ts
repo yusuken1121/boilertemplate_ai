@@ -1,3 +1,4 @@
+import path from "node:path"
 import type { NextConfig } from "next"
 
 const isProduction = process.env.NODE_ENV === "production"
@@ -5,9 +6,9 @@ const isProduction = process.env.NODE_ENV === "production"
 /**
  * Baseline security headers.
  *
- * A Content-Security-Policy is deliberately NOT set here: a correct one for
- * the App Router needs a per-request nonce, which belongs in middleware.ts.
- * See `.cursor/skills/project-setup/SKILL.md` for the starting point.
+ * Content-Security-Policy is NOT here — it needs a per-request nonce, so it is
+ * set in `src/middleware.ts`. These are the static ones, which apply to every
+ * response including the ones middleware skips.
  */
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -31,6 +32,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Emits a self-contained server bundle for the Docker image.
   output: "standalone",
+  turbopack: {
+    // Pin the workspace root. Without it Turbopack walks up looking for a
+    // lockfile and can pick one from a parent directory (a stray
+    // ~/pnpm-lock.yaml is enough), which changes what gets bundled.
+    root: path.resolve(process.cwd()),
+  },
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }]

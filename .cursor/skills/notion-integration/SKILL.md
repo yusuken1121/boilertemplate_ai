@@ -8,6 +8,10 @@ description: >-
 
 # Notion Integration
 
+> Writing only. To **read** from Notion — query, update, archive, pagination —
+> see [notion-as-database](../notion-as-database/SKILL.md), which covers the
+> repository port and the four constraints that shape any code using it.
+
 `src/infrastructure/notion/` is a **generic, feature-agnostic** adapter implementing a
 Core Port. It knows nothing about the Contact form — the field mapping is supplied
 by whichever feature uses it, so the adapter survives deleting `features/contact/`.

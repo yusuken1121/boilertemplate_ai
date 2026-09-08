@@ -22,6 +22,38 @@ description: >-
 - **Lint / Format**: ESLint (with architecture boundaries) + Prettier
 - **Package Manager**: pnpm, pinned via `packageManager`
 
+## Two profiles
+
+The default profile has accounts and Postgres. `pnpm preset:minimal` strips it
+to a personal-app profile: no accounts, no database, Notion as the datastore.
+Run it without `--apply` first — it prints exactly what it removes.
+
+The minimal profile has **no route guard**. If you deploy it, put a gate in
+front: Vercel password protection, Cloudflare Access, or a single app password
+in `src/middleware.ts`:
+
+```typescript
+// after computing requestId, before returning the response
+const gate = process.env.APP_PASSWORD
+if (gate && req.cookies.get("app-gate")?.value !== gate) {
+  const supplied = req.nextUrl.searchParams.get("key")
+  if (supplied !== gate) return new Response("Not found", { status: 404 })
+
+  const response = NextResponse.redirect(
+    new URL(req.nextUrl.pathname, req.nextUrl.origin),
+  )
+  response.cookies.set("app-gate", gate, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+  })
+  return response
+}
+```
+
+404 rather than 401: an unauthenticated visitor learns nothing about what is
+there. Add `APP_PASSWORD` to `src/lib/env.ts` and `.env.example`.
+
 ## Getting Started
 
 ### 1. Install dependencies

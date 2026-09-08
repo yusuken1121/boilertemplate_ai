@@ -25,9 +25,12 @@ Server Actions are **not used**. Composition Root = `src/app/api/**/route.ts` on
 | Project setup | `.cursor/skills/project-setup/SKILL.md` |
 | Authentication | `.cursor/skills/authentication/SKILL.md` |
 | Database | `.cursor/skills/database/SKILL.md` |
+| Observability | `.cursor/skills/observability/SKILL.md` |
+| Background jobs | `.cursor/skills/background-jobs/SKILL.md` |
 | React Query + API pattern | `.cursor/skills/react-query-api-pattern/SKILL.md` |
 | Feature extension | `.cursor/skills/clean-architecture-extension/SKILL.md` |
 | Notion integration | `.cursor/skills/notion-integration/SKILL.md` |
+| Notion as database | `.cursor/skills/notion-as-database/SKILL.md` |
 | Sidebar management | `.cursor/skills/sidebar-management/SKILL.md` |
 
 Before writing code, read **architectural-rules** and **architecture-overview**.
@@ -47,6 +50,8 @@ Before writing code, read **architectural-rules** and **architecture-overview**.
 - Logging goes through `logger` in `src/lib/logger.ts`. `console.*` elsewhere is a lint error.
 - Domain errors extend `DomainError` and carry `status`; Route Handlers always end in `handleRouteError(error, context)`.
 - Route Handlers that touch a metered or paid resource call `enforceRateLimit` first.
+- Wrap Route Handlers in `routeHandler(name, fn)` — it supplies the request id and the try/catch.
+- Never do third-party I/O inside `IUnitOfWork.transaction`; enqueue a job instead.
 - Client components never import `@/lib/env`, `@/features/auth/auth`, `@/features/auth/session`, or anything under `@/infrastructure`.
 
 **These are enforced by `eslint.config.mjs`.** If `pnpm lint` rejects an import,

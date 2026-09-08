@@ -105,12 +105,14 @@ the choice made on a single line in the Route Handler.
 src/
 ├── app/                          # Routing only
 │   ├── (app)/                    # Signed-in shell: sidebar + header
-│   │   ├── page.tsx  contact/  settings/
+│   │   ├── page.tsx  contact/  settings/  audit/
 │   │   └── layout.tsx
 │   ├── (auth)/                   # Full-screen, no chrome
-│   │   └── sign-in/page.tsx
+│   │   └── sign-in/ sign-up/ forgot-password/ reset-password/
 │   ├── api/                      # Route Handlers (Composition Root)
 │   │   ├── auth/[...nextauth]/route.ts
+│   │   ├── auth-actions/         # register · forgot-password · reset-password
+│   │   ├── audit/route.ts  health/route.ts
 │   │   ├── chat/route.ts
 │   │   └── contact/route.ts
 │   ├── layout.tsx  error.tsx  loading.tsx  not-found.tsx
@@ -119,21 +121,29 @@ src/
 ├── middleware.ts                 # Route guard — must be inside src/
 │
 ├── core/                         # Pure TypeScript — no React, Next.js, or SDKs
-│   ├── domain/                   # message.entity · user.entity · *.vo
+│   ├── domain/                   # message · user · audit-entry · pagination
 │   │                             # domain.error · access.error
-│   ├── ports/                    # IAIGateway · INotionRecordWriter
-│   │                             # IUserRepository · IPasswordHasher · ILogger
+│   ├── ports/                    # IAIGateway · INotionRecordWriter · ILogger
+│   │                             # IUserRepository · IAuditLogRepository
+│   │                             # IPasswordHasher · IPasswordResetTokenRepository
+│   │                             # IUnitOfWork · IEmailSender · IJobQueue
+│   │                             # IFileStorage · IFeatureFlags
 │   └── use-cases/                # CreateNotionRecordUseCase (generic)
 │
 ├── infrastructure/               # External adapters — the only place with SDKs
 │   ├── gemini/  anthropic/       # IAIGateway ×2
 │   ├── notion/                   # INotionRecordWriter (record-agnostic)
-│   ├── db/                       # IUserRepository (Drizzle) + schema + client
-│   └── auth/                     # IPasswordHasher (node scrypt)
+│   ├── db/                       # repositories · unit of work · queue · flags
+│   ├── auth/                     # IPasswordHasher (node scrypt)
+│   ├── email/                    # IEmailSender (Resend + log fallback)
+│   ├── storage/                  # IFileStorage (S3 / R2 / MinIO)
+│   ├── logging/                  # ILogger (pino)
+│   └── rate-limit/               # IRateLimiter (Upstash Redis)
 │
 ├── features/                     # Vertical slices — delete a folder to remove one
 │   ├── auth/                     # auth.config (edge) · auth (node) · session
-│   │                             # auth.schema · components/
+│   │                             # sign in / sign up / password reset
+│   ├── audit/                    # useInfiniteQuery read path + admin table
 │   ├── chat/                     # chat.config · chat.schema
 │   │                             # domain/ use-cases/ api/ hooks/ components/
 │   └── contact/                  # contact.schema
@@ -145,14 +155,17 @@ src/
 │
 ├── lib/
 │   ├── api/api-client.ts         # apiGet / apiPost / apiPostStream + ApiError
-│   ├── env.ts                    # lazy, validated server env access
+│   ├── env.ts                    # lazy, validated server env (server-only)
 │   ├── logger.ts                 # ILogger instance + setLogger
+│   ├── request-context.ts        # AsyncLocalStorage — Node runtime only
+│   ├── route-handler.ts          # request id + error mapping wrapper
 │   ├── rate-limit.ts             # IRateLimiter + in-memory default
 │   ├── route-error.ts            # thrown value → HTTP response
 │   ├── navigation.ts  utils.ts
 │   └── zod/zod-config.ts         # global Zod error map
 │
-├── constants/                    # app-config · path · sidebar · labels
+├── instrumentation.ts            # startup wiring: pino, shared rate limiter
+├── constants/                    # app-config · runtime · http · path · sidebar
 ├── hooks/                        # use-mobile · use-zod-form
 ├── providers/                    # ReactQueryProvider
 └── types/                        # next-auth.d.ts (module augmentation)

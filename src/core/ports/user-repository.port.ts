@@ -3,7 +3,8 @@ import type { User, UserWithCredentials, UserRole } from "../domain/user.entity"
 export interface CreateUserInput {
   email: string
   name: string
-  passwordHash: string
+  /** Null for OAuth-only accounts. */
+  passwordHash: string | null
   role?: UserRole
 }
 
@@ -18,4 +19,5 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<UserWithCredentials | null>
   findById(id: string): Promise<User | null>
   create(input: CreateUserInput): Promise<User>
+  updatePasswordHash(id: string, passwordHash: string): Promise<void>
 }

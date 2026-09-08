@@ -4,7 +4,7 @@ import type {
   IUserRepository,
 } from "@/core/ports/user-repository.port"
 import type { User, UserWithCredentials } from "@/core/domain/user.entity"
-import { getDb } from "./client"
+import { getDb, type DbExecutor } from "./client"
 import { users, type UserRow } from "./schema"
 
 /** Rows are a storage detail; the rest of the app only sees the entity. */
@@ -25,7 +25,8 @@ function toPublic(row: UserRow): User {
 }
 
 export class DrizzleUserRepository implements IUserRepository {
-  private readonly db = getDb()
+  /** Takes an executor so the same class works inside a transaction. */
+  constructor(private readonly db: DbExecutor = getDb()) {}
 
   async findByEmail(email: string): Promise<UserWithCredentials | null> {
     const [row] = await this.db
@@ -64,12 +65,16 @@ export class DrizzleUserRepository implements IUserRepository {
 
     return toPublic(row)
   }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.db.update(users).set({ passwordHash }).where(eq(users.id, id))
+  }
 }
 
 /**
  * Factory for Dependency Injection.
  * Call from Route Handlers (Composition Root) only.
  */
-export function createUserRepository(): IUserRepository {
-  return new DrizzleUserRepository()
+export function createUserRepository(db?: DbExecutor): IUserRepository {
+  return new DrizzleUserRepository(db)
 }

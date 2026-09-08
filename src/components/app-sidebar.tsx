@@ -152,7 +152,9 @@ function SidebarNavGroup({
 
   return (
     <SidebarGroup className={className}>
-      <SidebarGroupLabel className="mb-2 px-2 text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
+      {/* Full-strength muted-foreground: at 12px, the /70 tint this started
+          with measured 2.83:1, well under the 4.5:1 WCAG AA minimum. */}
+      <SidebarGroupLabel className="mb-2 px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
         {label}
       </SidebarGroupLabel>
       <SidebarGroupContent>{menu}</SidebarGroupContent>
