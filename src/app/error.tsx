@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCcw } from "lucide-react"
+import { logger } from "@/lib/logger"
 
 export default function Error({
   error,
@@ -12,8 +13,9 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error)
+    // Goes through the logger so a client error reporter can be installed
+    // in one place (see setLogger in src/lib/logger.ts).
+    logger.error("Unhandled render error", error, { digest: error.digest })
   }, [error])
 
   return (

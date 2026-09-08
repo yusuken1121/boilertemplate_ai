@@ -23,3 +23,6 @@ export const contactFormSchema = contactSubmissionSchema.extend({
 
 export type ContactSubmissionRequest = z.infer<typeof contactSubmissionSchema>
 export type ContactFormValues = z.infer<typeof contactFormSchema>
+
+/** Anonymous quota for POST /api/contact, keyed by client IP. */
+export const CONTACT_RATE_LIMIT = { limit: 5, windowMs: 60 * 60 * 1000 }

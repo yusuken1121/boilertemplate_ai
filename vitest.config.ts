@@ -1,18 +1,42 @@
 import path from "path"
+import react from "@vitejs/plugin-react"
 import { defineConfig } from "vitest/config"
 
+const alias = { "@": path.resolve(__dirname, "./src") }
+
+/**
+ * Two projects, split by what the code under test actually needs.
+ *
+ * Core, Use Cases, Infrastructure and schemas have no DOM dependency, so they
+ * run in `node` — faster, and it fails loudly if domain code starts reaching
+ * for `window`. Components run in `jsdom`.
+ *
+ * `*.spec.ts` → node   ·   `*.spec.tsx` → jsdom
+ * Run one with `pnpm test --project=node`.
+ */
 export default defineConfig({
   test: {
-    // Node: Core, Use Cases, Infrastructure and schemas have no DOM dependency.
-    // To test React components, install `jsdom` + `@testing-library/react`
-    // and switch to `projects` with a jsdom project for `**/*.spec.tsx`.
-    environment: "node",
-    globals: true,
-    include: ["src/**/*.spec.ts"],
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    projects: [
+      {
+        resolve: { alias },
+        test: {
+          name: "node",
+          environment: "node",
+          globals: true,
+          include: ["src/**/*.spec.ts"],
+        },
+      },
+      {
+        plugins: [react()],
+        resolve: { alias },
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          globals: true,
+          include: ["src/**/*.spec.tsx"],
+          setupFiles: ["./vitest.setup.ts"],
+        },
+      },
+    ],
   },
 })

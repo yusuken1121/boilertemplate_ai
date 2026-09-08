@@ -44,8 +44,15 @@ import from `features`.
                                │ POST /api/*
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
+│  Route guard                                                 │
+│  src/middleware.ts — private by default; /api/* gets 401     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
 │  Composition Root (Controller)                               │
-│  src/app/api/**/route.ts  — Zod validation + DI              │
+│  src/app/api/**/route.ts                                     │
+│  requireUser → enforceRateLimit → Zod → DI                   │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -57,9 +64,12 @@ import from `features`.
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Infrastructure Layer                                        │
-│  src/infrastructure/  — Gemini, Notion, etc.                 │
+│  src/infrastructure/ — Gemini · Anthropic · Notion · Drizzle │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+Every boundary above is checked by `eslint.config.mjs`. The diagram is not
+aspirational — an import that crosses a layer the wrong way fails `pnpm lint`.
 
 ## Example: Chat
 
@@ -67,10 +77,15 @@ import from `features`.
 ChatInterface                    [src/features/chat/components/]
   → useChatStream()              [src/features/chat/hooks/use-chat-stream.ts]
   → useSendMessageStream()       [src/features/chat/api/use-chat.ts]
+  → middleware                   [src/middleware.ts — 401 if anonymous]
   → POST /api/chat               [src/app/api/chat/route.ts]
+       requireUser → enforceRateLimit → Zod → DI
   → SendMessageUseCase           [src/features/chat/use-cases/]
-  → GeminiGateway (IAIGateway)   [src/infrastructure/gemini/]
+  → GeminiGateway | AnthropicGateway   (IAIGateway)   [src/infrastructure/]
 ```
+
+The last line is the point of the whole arrangement: two adapters, one port, and
+the choice made on a single line in the Route Handler.
 
 ## Context Map
 
@@ -89,52 +104,58 @@ ChatInterface                    [src/features/chat/components/]
 ```text
 src/
 ├── app/                          # Routing only
+│   ├── (app)/                    # Signed-in shell: sidebar + header
+│   │   ├── page.tsx  contact/  settings/
+│   │   └── layout.tsx
+│   ├── (auth)/                   # Full-screen, no chrome
+│   │   └── sign-in/page.tsx
 │   ├── api/                      # Route Handlers (Composition Root)
+│   │   ├── auth/[...nextauth]/route.ts
 │   │   ├── chat/route.ts
 │   │   └── contact/route.ts
-│   ├── page.tsx  contact/  settings/
 │   ├── layout.tsx  error.tsx  loading.tsx  not-found.tsx
+│   └── sitemap.ts  robots.ts  opengraph-image.tsx
+│
+├── middleware.ts                 # Route guard — must be inside src/
 │
 ├── core/                         # Pure TypeScript — no React, Next.js, or SDKs
-│   ├── domain/                   # message.entity.ts, ai-generate-options.vo.ts,
-│   │                             # notion-page-ref.vo.ts, domain.error.ts
-│   ├── ports/                    # IAIGateway, INotionRecordWriter
+│   ├── domain/                   # message.entity · user.entity · *.vo
+│   │                             # domain.error · access.error
+│   ├── ports/                    # IAIGateway · INotionRecordWriter
+│   │                             # IUserRepository · IPasswordHasher · ILogger
 │   └── use-cases/                # CreateNotionRecordUseCase (generic)
 │
-├── infrastructure/               # External service adapters
-│   ├── gemini/                   # IAIGateway implementation
-│   └── notion/                   # INotionRecordWriter implementation (generic)
+├── infrastructure/               # External adapters — the only place with SDKs
+│   ├── gemini/  anthropic/       # IAIGateway ×2
+│   ├── notion/                   # INotionRecordWriter (record-agnostic)
+│   ├── db/                       # IUserRepository (Drizzle) + schema + client
+│   └── auth/                     # IPasswordHasher (node scrypt)
 │
 ├── features/                     # Vertical slices — delete a folder to remove one
-│   ├── chat/
-│   │   ├── chat.config.ts        # model id + display label (single source)
-│   │   ├── chat.schema.ts        # Zod request schema + client types
-│   │   ├── domain/               # message.validation.ts
-│   │   ├── use-cases/            # send-message.use-case.ts
-│   │   ├── api/                  # chat.api.ts, use-chat.ts
-│   │   ├── hooks/                # use-chat-stream.ts
-│   │   └── components/
-│   └── contact/
-│       ├── contact.schema.ts
-│       ├── domain/               # contact-submission.entity.ts
-│       ├── notion/               # contact-database.config.ts (field mapping)
-│       ├── api/                  # contact.api.ts, use-contact.ts
-│       └── components/
+│   ├── auth/                     # auth.config (edge) · auth (node) · session
+│   │                             # auth.schema · components/
+│   ├── chat/                     # chat.config · chat.schema
+│   │                             # domain/ use-cases/ api/ hooks/ components/
+│   └── contact/                  # contact.schema
+│                                 # domain/ notion/ api/ components/
 │
 ├── components/                   # Shared UI
 │   ├── ui/                       # shadcn/ui primitives
-│   ├── app-sidebar.tsx  global-header.tsx  theme-provider.tsx
+│   └── app-sidebar · global-header · theme-provider
 │
 ├── lib/
 │   ├── api/api-client.ts         # apiGet / apiPost / apiPostStream + ApiError
 │   ├── env.ts                    # lazy, validated server env access
+│   ├── logger.ts                 # ILogger instance + setLogger
+│   ├── rate-limit.ts             # IRateLimiter + in-memory default
 │   ├── route-error.ts            # thrown value → HTTP response
 │   ├── navigation.ts  utils.ts
-│   └── zod/zod-config.ts         # global Japanese Zod error map
+│   └── zod/zod-config.ts         # global Zod error map
 │
-├── constants/                    # app-config.ts, path.ts, sidebar.tsx, labels.ts
-├── hooks/                        # use-mobile.ts
-└── providers/                    # ReactQueryProvider
+├── constants/                    # app-config · path · sidebar · labels
+├── hooks/                        # use-mobile · use-zod-form
+├── providers/                    # ReactQueryProvider
+└── types/                        # next-auth.d.ts (module augmentation)
 ```
 
 ## Related Skills

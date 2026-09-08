@@ -56,15 +56,30 @@ export function createOpenAIGateway(): IAIGateway {
 
 ### 3. Swap in the Composition Root
 
-In `src/app/api/chat/route.ts`:
+`src/app/api/chat/route.ts` already does this for the two bundled providers:
 
-```diff
--const useCase = new SendMessageUseCase(createGeminiGateway());
-+const useCase = new SendMessageUseCase(createOpenAIGateway());
+```typescript
+function createGateway(): IAIGateway {
+  return CHAT_PROVIDER === "anthropic"
+    ? createAnthropicGateway()
+    : createGeminiGateway()
+}
 ```
 
-Also update `src/features/chat/chat.config.ts` so the requested model and the
-label shown in the UI match the new provider.
+Add a branch, add the provider to `CHAT_PROVIDERS` in
+`src/features/chat/chat.config.ts` (model id **and** display label together),
+and set `NEXT_PUBLIC_CHAT_PROVIDER`.
+
+### A port is a contract, not a superset
+
+Writing the second gateway is what tells you whether the port is honest.
+`AIGenerateOptions` carries `temperature` and `topP`; Claude Opus 5 **rejects
+sampling parameters with a 400**. The Anthropic adapter therefore drops them and
+logs at debug level, rather than mistranslating them into something else.
+
+When a provider cannot honour an option, the adapter ignores it explicitly and
+says so in a comment. Never quietly map it onto a different knob — that makes
+the same request mean different things depending on which adapter is wired in.
 
 ---
 
@@ -204,6 +219,12 @@ import { handleRouteError } from "@/lib/route-error"
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await requireUser()
+    await enforceRateLimit(clientKey(req, user.id), {
+      limit: 30,
+      windowMs: 60_000,
+    })
+
     const input = feedbackRequestSchema.parse(await req.json())
 
     const useCase = new SubmitFeedbackUseCase(new FirestoreFeedbackRepository())

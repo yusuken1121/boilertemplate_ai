@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { signOut } from "next-auth/react"
 
 import {
   Sidebar,
@@ -15,7 +16,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import type { User } from "@/core/domain/user.entity"
 import { APP_CONFIG } from "@/constants/app-config"
+import { PATH } from "@/constants/path"
 import {
   SIDEBAR_CONFIG,
   adminSidebar,
@@ -23,10 +26,17 @@ import {
   mainSidebar,
   manageSidebar,
   type MenuKey,
+  type SidebarAction,
   type SidebarItemConfig,
 } from "@/constants/sidebar"
 import { isPathActive } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
+
+type SidebarUser = Pick<User, "id" | "email" | "name" | "role"> | null
+
+const ACTIONS: Record<SidebarAction, () => void> = {
+  "sign-out": () => void signOut({ callbackUrl: PATH.SIGN_IN }),
+}
 
 function SidebarNavItem({
   item,
@@ -62,7 +72,7 @@ function SidebarNavItem({
   if (!item.path) {
     return (
       <SidebarMenuButton
-        onClick={item.onSelect}
+        onClick={item.action ? ACTIONS[item.action] : undefined}
         className="h-10 cursor-pointer transition-all duration-200 ease-in-out hover:translate-x-1 hover:bg-sidebar-accent/50"
       >
         <div className="flex items-center gap-3">
@@ -104,21 +114,28 @@ function SidebarNavGroup({
   label,
   keys,
   pathname,
+  user,
   className,
 }: {
   label?: string
   keys: MenuKey[]
   pathname: string
+  user: SidebarUser
   className?: string
 }) {
-  if (!keys.length) return null
+  const visible = keys.filter((key) => {
+    const item = SIDEBAR_CONFIG[key]
+    if (!item.path && !item.action) return false
+    if (!item.roles) return true
+    return user !== null && item.roles.includes(user.role)
+  })
+
+  if (!visible.length) return null
 
   const menu = (
     <SidebarMenu className="space-y-1">
-      {keys.map((key) => {
+      {visible.map((key) => {
         const item = SIDEBAR_CONFIG[key]
-        if (!item.path && !item.onSelect) return null
-
         return (
           <SidebarMenuItem key={key}>
             <SidebarNavItem
@@ -143,7 +160,7 @@ function SidebarNavGroup({
   )
 }
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user: SidebarUser }) {
   const pathname = usePathname()
 
   return (
@@ -169,34 +186,45 @@ export function AppSidebar() {
           label="Create"
           keys={mainSidebar}
           pathname={pathname}
+          user={user}
         />
         <SidebarNavGroup
           label="Manage"
           keys={manageSidebar}
           pathname={pathname}
+          user={user}
           className="mt-4"
         />
         <SidebarNavGroup
           label="Admin"
           keys={adminSidebar}
           pathname={pathname}
+          user={user}
           className="mt-4"
         />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border/50 p-4">
         <div className="mb-2">
-          <SidebarNavGroup keys={footerSidebar} pathname={pathname} />
+          <SidebarNavGroup
+            keys={footerSidebar}
+            pathname={pathname}
+            user={user}
+          />
         </div>
 
         <div className="rounded-lg bg-sidebar-accent/50 p-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
-              <span className="text-xs font-bold">U</span>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
+              <span className="text-xs font-bold">
+                {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
+              </span>
             </div>
-            <div className="text-xs">
-              <p className="font-medium">User</p>
-              <p className="text-[10px] text-muted-foreground">Free Plan</p>
+            <div className="min-w-0 text-xs">
+              <p className="truncate font-medium">{user?.name ?? "Guest"}</p>
+              <p className="truncate text-[10px] text-muted-foreground">
+                {user?.email ?? "Not signed in"}
+              </p>
             </div>
           </div>
         </div>

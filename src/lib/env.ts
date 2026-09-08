@@ -4,16 +4,25 @@ import { z } from "zod"
  * Server-only environment variables.
  *
  * Validated **lazily, per key** rather than all at once at import time:
- * a project that only uses Chat must not be forced to configure Notion.
- * Never read `process.env` for a secret outside this module.
+ * a project that only uses Chat must not be forced to configure Notion or a
+ * database. Never read `process.env` for a secret outside this module —
+ * `no-restricted-properties` in eslint.config.mjs enforces that.
  *
  * NOTE: to make a client-side import a build error, install the `server-only`
  * package and add `import "server-only"` as the first line of this file.
  */
 const serverEnvSchema = z.object({
+  /** Chat feature — Google Gemini */
   GEMINI_API_KEY: z.string().min(1),
+  /** Chat feature — Anthropic Claude (alternative IAIGateway implementation) */
+  ANTHROPIC_API_KEY: z.string().min(1),
+  /** Contact feature — Notion */
   NOTION_TOKEN: z.string().min(1),
   NOTION_CONTACT_DATABASE_ID: z.string().min(1),
+  /** Database — postgres connection string */
+  DATABASE_URL: z.string().min(1),
+  /** Auth.js — signing secret. Generate with `openssl rand -base64 32` */
+  AUTH_SECRET: z.string().min(1),
 })
 
 export type ServerEnvKey = keyof z.infer<typeof serverEnvSchema>
@@ -38,4 +47,13 @@ export function serverEnv(key: ServerEnvKey): string {
   }
 
   return result.data
+}
+
+/**
+ * Read an optional server environment variable without throwing.
+ * Use for feature flags and tuning knobs, never for a required secret.
+ */
+export function optionalEnv(key: string, fallback: string): string {
+  const value = process.env[key]
+  return value === undefined || value === "" ? fallback : value
 }

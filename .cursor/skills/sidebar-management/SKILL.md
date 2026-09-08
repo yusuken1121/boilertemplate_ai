@@ -47,11 +47,24 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
 `icon` is a `LucideIcon` **component reference**. `AppSidebar` renders it and applies
 the active/inactive color itself — do not pass an element or a `className`.
 
-For an action instead of a link, set `onSelect` and omit `path`:
+For an action instead of a link, set `action` and omit `path`:
 
 ```typescript
-[MENU_KEYS.LOGOUT]: { label: "Logout", icon: LogOutIcon, onSelect: () => signOut() },
+[MENU_KEYS.LOGOUT]: { label: "Sign out", icon: LogOutIcon, action: "sign-out" },
 ```
+
+A **string tag, not a callback**: this module is imported by Server Components,
+so it must not pull in `next-auth/react`. `AppSidebar` maps the tag to the
+client-side handler in its `ACTIONS` record — add a case there for a new action.
+
+To restrict an item to certain roles, add `roles`:
+
+```typescript
+[MENU_KEYS.USERS]: { label: "Users", path: PATH.USERS, icon: Users, roles: ["admin"] },
+```
+
+Omitting `roles` shows the item to everyone. Filtering the sidebar is cosmetic —
+the route itself must still call `requireRole("admin")`.
 
 An item without a `path` is never treated as the active route, and is skipped when
 resolving the breadcrumb title.

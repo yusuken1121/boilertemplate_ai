@@ -47,21 +47,36 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createSomeGateway } from "@/infrastructure/some"
 import { SomeUseCase } from "@/features/<feature>/use-cases/some.use-case"
 import { someRequestSchema } from "@/features/<feature>/<feature>.schema"
+import { requireUser } from "@/features/auth/session"
+import { clientKey, enforceRateLimit } from "@/lib/rate-limit"
 import { handleRouteError } from "@/lib/route-error"
+
+const RATE_LIMIT = { limit: 20, windowMs: 60_000 }
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. who      — throws UnauthorizedError (401) when anonymous
+    const user = await requireUser()
+    // 2. how much — before any paid or external work
+    await enforceRateLimit(clientKey(req, user.id), RATE_LIMIT)
+    // 3. what     — HTTP shape only; business rules live in the use case
     const input = someRequestSchema.parse(await req.json())
-
+    // 4. wire     — the only place adapters are constructed
     const useCase = new SomeUseCase(createSomeGateway())
-    const data = await useCase.execute(input)
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({
+      success: true,
+      data: await useCase.execute(input),
+    })
   } catch (error) {
     return handleRouteError(error, "POST /api/<feature>")
   }
 }
 ```
+
+**who → how much → what → wire**, then `handleRouteError`. A public endpoint
+drops step 1 and keys the limit by IP (`clientKey(req)`) — with no account to
+throttle, the rate limit is the only backstop.
 
 `handleRouteError` maps `ZodError` and any `DomainError` to 400, everything else
 to 500 (hiding internals in production). Never hand-roll that mapping.
@@ -133,6 +148,7 @@ see `use-chat-stream.ts`.
 | Chat (stream)   | `useSendMessageStream`   | `/api/chat`    | `ChatInterface` |
 | Chat (complete) | `useSendMessageComplete` | `/api/chat`    | —               |
 | Contact         | `useSubmitContact`       | `/api/contact` | `ContactForm`   |
+| Sign in         | `signIn()` (next-auth)   | `/api/auth/*`  | `SignInForm`    |
 
 ## Related Skills
 

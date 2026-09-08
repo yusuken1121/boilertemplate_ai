@@ -8,7 +8,10 @@ description: >-
 
 # Architectural Rules
 
-These rules are **mandatory**. Verify import paths before generating code.
+These rules are **mandatory** — and most of them are **enforced by
+`eslint.config.mjs`**, not just documented here. `pnpm lint` fails on a
+violation, so if a generated import is rejected, change the design rather than
+the rule.
 
 ## Layer Boundaries
 
@@ -42,6 +45,15 @@ These rules are **mandatory**. Verify import paths before generating code.
 - MUST wrap the body in `try/catch` and return `handleRouteError(error, context)`.
 - Do **not** use Server Actions.
 
+### `src/middleware.ts` (Route guard)
+
+- Must live in `src/`. A project with a `src` directory ignores a root-level
+  `middleware.ts` silently.
+- Runs on the **Edge runtime** — import only `src/features/auth/auth.config.ts`,
+  never `auth.ts` (database) or anything using `node:crypto`.
+- Everything is private by default; add a route to `PUBLIC_PATHS` to open it.
+- `/api/*` gets **401 JSON**, never a redirect.
+
 ### `src/app` + `src/components` (UI)
 
 - Pages and components call the server via React Query hooks — never Use Cases or Infrastructure directly.
@@ -65,9 +77,25 @@ These rules are **mandatory**. Verify import paths before generating code.
 
 6. **Secrets through `src/lib/env.ts`** — never read `process.env.<SECRET>` elsewhere.
    `serverEnv(key)` validates lazily and throws a named `MissingEnvVarError`.
+   Public `NEXT_PUBLIC_*` values belong in `src/constants/app-config.ts` or a
+   `*.config.ts` inside the feature. _(lint: `no-restricted-properties`)_
 
-7. **Errors** — every domain error extends `DomainError` (`src/core/domain/domain.error.ts`).
-   `handleRouteError` maps it to HTTP 400 automatically; no route changes needed.
+7. **Errors** — every domain error extends `DomainError` (`src/core/domain/domain.error.ts`)
+   and carries a `status` (400 by default; `UnauthorizedError` 401,
+   `ForbiddenError` 403). `handleRouteError` maps it automatically; no route
+   changes needed.
+
+8. **Logging through `src/lib/logger.ts`** — `console.*` anywhere else is a lint
+   error. One `setLogger()` call swaps every log line to Sentry or pino.
+
+9. **Rate limit metered endpoints** — any Route Handler that calls a paid API or
+   writes to an external store calls `enforceRateLimit` before doing the work.
+   A public endpoint has no other backstop.
+
+10. **Client code stays client-safe** — components, hooks and `api/` wrappers must
+    not import `@/lib/env`, `@/features/auth/auth`, `@/features/auth/session`, or
+    anything under `@/infrastructure`. Those pull server SDKs (and their
+    credential paths) into the browser bundle. _(lint: `no-restricted-imports`)_
 
 ## Domain Layer Conventions
 

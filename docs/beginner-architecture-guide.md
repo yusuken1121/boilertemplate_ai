@@ -95,6 +95,7 @@ Notion アダプタは「どんなレコードでも書ける」汎用実装な�
 5. `src/app/api/chat/route.ts` — サーバー入口
 6. `src/features/chat/use-cases/send-message.use-case.ts` — ビジネスロジック
 7. `src/infrastructure/gemini/gemini-chat.gateway.ts` — Gemini 連携
+8. `src/infrastructure/anthropic/anthropic-chat.gateway.ts` — 同じ Port の別実装
 
 ---
 
@@ -259,11 +260,16 @@ export class GeminiGateway implements IAIGateway {
 // src/app/api/chat/route.ts
 export async function POST(req: NextRequest) {
   try {
+    // 1. 誰が    — 未サインインなら 401
+    const user = await requireUser()
+    // 2. どれだけ — 課金 API を叩く前に必ず
+    await enforceRateLimit(clientKey(req, user.id), CHAT_RATE_LIMIT)
+    // 3. 何を    — 形式だけ検証（業務ルールは Use Case）
     const { stream, messages, options } = chatRequestSchema.parse(
       await req.json(),
     )
-
-    const useCase = new SendMessageUseCase(createGeminiGateway())
+    // 4. 組み立て — 具体クラスを new してよい唯一の場所
+    const useCase = new SendMessageUseCase(createGateway())
 
     if (!stream) {
       const response = await useCase.executeNonStreaming({ messages, options })
@@ -284,14 +290,17 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-**流れ：**
+**流れは毎回同じ「誰が → どれだけ → 何を → 組み立て」：**
 
-1. リクエスト body を JSON で取得
-2. Zod スキーマで検証（`chatRequestSchema`）
-3. `createGeminiGateway()` で Infrastructure を生成
-4. `new SendMessageUseCase(...)` で Use Case に注入
+1. `requireUser()` — 未サインインなら `UnauthorizedError`（401）
+2. `enforceRateLimit()` — 課金 API や外部書き込みの前に必ず
+3. Zod スキーマで検証（`chatRequestSchema`）
+4. Infrastructure を生成して Use Case に注入
 5. `execute()` を呼んで結果を HTTP レスポンスとして返す
 6. 例外は必ず `handleRouteError()` に渡す
+
+`createGateway()` の中身は1行です。ここを差し替えるだけで Gemini ↔ Claude が入れ替わり、
+Use Case もコンポーネントも一切変わりません。これが Port の実利です。
 
 `handleRouteError()` は `ZodError` と `DomainError` を 400、それ以外を 500 に振り分けます。
 **本番環境では 500 の詳細メッセージを隠す**ので、SDK の内部情報がクライアントに漏れません。
@@ -539,9 +548,13 @@ Port や Entity を複数機能で共有したくなったら、そのときに 
 
 ```bash
 pnpm install
-cp .env.example .env.local   # GEMINI_API_KEY を設定
+cp .env.example .env.local        # AUTH_SECRET を設定: openssl rand -base64 32
+docker compose up -d              # Postgres を起動
+pnpm db:migrate && pnpm db:seed   # テーブル作成 + 最初のアカウント
 pnpm dev
 ```
+
+`pnpm db:seed` が表示するメールアドレスとパスワードでサインインできます。
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開き、  
 DevTools の **Network** タブで `POST /api/chat` を見ながらコードを追うと理解が深まります。
@@ -582,5 +595,6 @@ Infrastructure 層の単体テストが「Port の実装が正しいか」を確
 - **Route Handler** = 部品を組み立てる唯一の場所
 - **features/** = 機能のタテ切り。消せば機能ごと消える
 - **core / infrastructure** = 機能に依存しない共有部分。消えない
+- **ESLint** = 上のすべてを実際に見張っている番人
 
 コードを読むときは **UI から下に降りていく**（上記セクション 5 の順番）と迷いにくいです。

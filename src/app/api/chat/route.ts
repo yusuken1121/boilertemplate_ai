@@ -1,16 +1,36 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createGeminiGateway } from "@/infrastructure/gemini"
+import { createAnthropicGateway } from "@/infrastructure/anthropic"
+import type { IAIGateway } from "@/core/ports/ai-gateway.port"
 import { SendMessageUseCase } from "@/features/chat/use-cases/send-message.use-case"
 import { chatRequestSchema } from "@/features/chat/chat.schema"
+import { CHAT_PROVIDER, CHAT_RATE_LIMIT } from "@/features/chat/chat.config"
+import { requireUser } from "@/features/auth/session"
+import { clientKey, enforceRateLimit } from "@/lib/rate-limit"
 import { handleRouteError } from "@/lib/route-error"
+
+/**
+ * Composition Root for the Chat feature.
+ *
+ * Swapping the AI provider is the one line below — `SendMessageUseCase`,
+ * the schema and every component stay exactly as they are.
+ */
+function createGateway(): IAIGateway {
+  return CHAT_PROVIDER === "anthropic"
+    ? createAnthropicGateway()
+    : createGeminiGateway()
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await requireUser()
+    await enforceRateLimit(clientKey(req, user.id), CHAT_RATE_LIMIT)
+
     const { stream, messages, options } = chatRequestSchema.parse(
       await req.json(),
     )
 
-    const useCase = new SendMessageUseCase(createGeminiGateway())
+    const useCase = new SendMessageUseCase(createGateway())
 
     if (!stream) {
       const response = await useCase.executeNonStreaming({ messages, options })

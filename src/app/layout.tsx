@@ -1,20 +1,13 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { GlobalHeader } from "@/components/global-header"
 import { ThemeProvider } from "@/components/theme-provider"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { APP_CONFIG } from "@/constants/app-config"
 import ReactQueryProvider from "@/providers/query-client-provider"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-})
-
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -27,15 +20,34 @@ export const metadata: Metadata = {
   },
   description: APP_CONFIG.description,
   metadataBase: new URL(APP_CONFIG.url),
+  openGraph: {
+    type: "website",
+    siteName: APP_CONFIG.name,
+    title: APP_CONFIG.name,
+    description: APP_CONFIG.description,
+    url: APP_CONFIG.url,
+  },
+  twitter: { card: "summary_large_image" },
 }
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+}
+
+/**
+ * Root layout — document shell and providers only.
+ *
+ * The application chrome (sidebar, header) lives in the `(app)` route group so
+ * that `(auth)` pages can render full-screen without it.
+ */
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -46,15 +58,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ReactQueryProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <GlobalHeader />
-                <div className="flex flex-1 flex-col gap-4 p-4 md:p-8">
-                  {children}
-                </div>
-              </SidebarInset>
-            </SidebarProvider>
+            {children}
             <Toaster />
           </ReactQueryProvider>
         </ThemeProvider>

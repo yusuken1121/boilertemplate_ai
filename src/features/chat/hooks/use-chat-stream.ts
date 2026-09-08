@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react"
 import { createMessage, type Message } from "@/core/domain/message.entity"
+import { logger } from "@/lib/logger"
 import { useSendMessageStream } from "../api/use-chat"
 import { CHAT_MODEL, CHAT_TEMPERATURE } from "../chat.config"
 
@@ -55,7 +56,7 @@ export function useChatStream() {
           updateMessage(placeholder.id, answer)
         }
       } catch (error) {
-        console.error("Failed to send message:", error)
+        logger.error("Failed to send chat message", error)
 
         const reason =
           error instanceof Error ? error.message : "Unknown error occurred"
