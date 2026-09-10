@@ -7,6 +7,7 @@ export const PATH = {
   CONTACT: "/contact",
   SETTINGS: "/settings",
   AUDIT: "/audit",
+  BILLING: "/billing",
   SIGN_IN: "/sign-in",
   SIGN_UP: "/sign-up",
   FORGOT_PASSWORD: "/forgot-password",

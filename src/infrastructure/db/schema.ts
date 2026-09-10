@@ -176,6 +176,72 @@ export const featureFlags = pgTable("feature_flags", {
     .$onUpdate(() => sql`now()`),
 })
 
+// ── billing ──────────────────────────────────────────────────────────────────
+
+/** One provider customer per user, created on the first checkout. */
+export const billingCustomers = pgTable("billing_customers", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+/**
+ * A cache of the provider's subscription state, kept current by webhooks, so
+ * "does this user have access?" is a local read and not an API call.
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    customerId: text("customer_id").notNull(),
+    providerSubscriptionId: text("provider_subscription_id").notNull().unique(),
+    priceId: text("price_id").notNull(),
+    status: text("status", {
+      enum: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+        "unpaid",
+        "paused",
+      ],
+    }).notNull(),
+    currentPeriodEnd: timestamp("current_period_end", {
+      withTimezone: true,
+    }).notNull(),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => sql`now()`),
+  },
+  (table) => [index("subscriptions_customer_idx").on(table.customerId)],
+)
+
+/**
+ * Every provider event we have already handled. The primary key IS the
+ * idempotency check: a redelivered event fails the insert and is skipped.
+ */
+export const webhookEvents = pgTable("webhook_events", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  receivedAt: timestamp("received_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 // ── relations ────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -196,3 +262,4 @@ export type NewUserRow = typeof users.$inferInsert
 export type AuditLogRow = typeof auditLog.$inferSelect
 export type JobRow = typeof jobs.$inferSelect
 export type FeatureFlagRow = typeof featureFlags.$inferSelect
+export type SubscriptionRow = typeof subscriptions.$inferSelect

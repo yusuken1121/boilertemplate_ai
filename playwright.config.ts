@@ -28,6 +28,12 @@ export default defineConfig({
     env: {
       // Auth.js refuses to verify a session without one. Test-only value.
       AUTH_SECRET: "e2e-secret-not-used-in-production",
+      // The webhook route constructs the Stripe client before it can check a
+      // signature, so without these an unsigned body is a 500 (misconfigured
+      // server — which Stripe would retry) instead of the 400 under test.
+      // Placeholder values: nothing here ever reaches Stripe.
+      STRIPE_SECRET_KEY: "sk_test_e2e_placeholder",
+      STRIPE_WEBHOOK_SECRET: "whsec_e2e_placeholder",
     },
   },
 })

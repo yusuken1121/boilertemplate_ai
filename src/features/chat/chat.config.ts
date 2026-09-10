@@ -30,3 +30,6 @@ export const CHAT_TEMPERATURE = 0.7
 
 /** Per-user quota for POST /api/chat — the model call is metered and billed. */
 export const CHAT_RATE_LIMIT = { limit: 20, windowMs: 60_000 }
+
+/** What a paid plan buys: ten times the quota. See `hasPaidAccess`. */
+export const CHAT_RATE_LIMIT_PRO = { limit: 200, windowMs: 60_000 }

@@ -30,6 +30,8 @@ const PUBLIC_PATHS = [
   PATH.RESET_PASSWORD,
   PATH.CONTACT,
   "/api/contact",
+  // The provider calls this; the request signature is its authentication.
+  "/api/webhooks",
   "/api/auth-actions",
   "/api/health",
 ]

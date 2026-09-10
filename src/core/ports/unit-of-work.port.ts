@@ -1,6 +1,8 @@
 import type { IAuditLogRepository } from "./audit-log-repository.port"
 import type { IPasswordResetTokenRepository } from "./password-reset-repository.port"
+import type { ISubscriptionRepository } from "./subscription-repository.port"
 import type { IUserRepository } from "./user-repository.port"
+import type { IWebhookEventRepository } from "./webhook-event-repository.port"
 
 /**
  * The repositories, all bound to the same transaction.
@@ -9,6 +11,8 @@ export interface Repositories {
   users: IUserRepository
   auditLog: IAuditLogRepository
   passwordResetTokens: IPasswordResetTokenRepository
+  subscriptions: ISubscriptionRepository
+  webhookEvents: IWebhookEventRepository
 }
 
 /**

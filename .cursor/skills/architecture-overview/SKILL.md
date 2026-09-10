@@ -113,6 +113,8 @@ src/
 │   │   ├── auth/[...nextauth]/route.ts
 │   │   ├── auth-actions/         # register · forgot-password · reset-password
 │   │   ├── audit/route.ts  health/route.ts
+│   │   ├── billing/              # checkout · portal · subscription
+│   │   ├── webhooks/stripe/route.ts
 │   │   ├── chat/route.ts
 │   │   └── contact/route.ts
 │   ├── layout.tsx  error.tsx  loading.tsx  not-found.tsx
@@ -134,6 +136,7 @@ src/
 │   ├── gemini/  anthropic/       # IAIGateway ×2
 │   ├── notion/                   # INotionRecordWriter (record-agnostic)
 │   ├── db/                       # repositories · unit of work · queue · flags
+│   ├── stripe/                   # IPaymentGateway (Stripe)
 │   ├── auth/                     # IPasswordHasher (node scrypt)
 │   ├── email/                    # IEmailSender (Resend + log fallback)
 │   ├── storage/                  # IFileStorage (S3 / R2 / MinIO)
@@ -144,6 +147,7 @@ src/
 │   ├── auth/                     # auth.config (edge) · auth (node) · session
 │   │                             # sign in / sign up / password reset
 │   ├── audit/                    # useInfiniteQuery read path + admin table
+│   ├── billing/                  # Stripe checkout · portal · webhook use cases
 │   ├── chat/                     # chat.config · chat.schema
 │   │                             # domain/ use-cases/ api/ hooks/ components/
 │   └── contact/                  # contact.schema

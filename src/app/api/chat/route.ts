@@ -4,7 +4,12 @@ import { createAnthropicGateway } from "@/infrastructure/anthropic"
 import type { IAIGateway } from "@/core/ports/ai-gateway.port"
 import { SendMessageUseCase } from "@/features/chat/use-cases/send-message.use-case"
 import { chatRequestSchema } from "@/features/chat/chat.schema"
-import { CHAT_PROVIDER, CHAT_RATE_LIMIT } from "@/features/chat/chat.config"
+import {
+  CHAT_PROVIDER,
+  CHAT_RATE_LIMIT,
+  CHAT_RATE_LIMIT_PRO,
+} from "@/features/chat/chat.config"
+import { hasPaidAccess } from "@/features/billing/entitlements"
 import { requireUser } from "@/features/auth/session"
 import { clientKey, enforceRateLimit } from "@/lib/rate-limit"
 import { handleRouteError } from "@/lib/route-error"
@@ -24,7 +29,13 @@ function createGateway(): IAIGateway {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser()
-    await enforceRateLimit(clientKey(req, user.id), CHAT_RATE_LIMIT)
+    // The subscription raises the quota rather than gating the feature: a free
+    // tier that works is a better funnel than a wall, and the check is one
+    // local read against the webhook-maintained cache.
+    const rule = (await hasPaidAccess(user.id))
+      ? CHAT_RATE_LIMIT_PRO
+      : CHAT_RATE_LIMIT
+    await enforceRateLimit(clientKey(req, user.id), rule)
 
     const { stream, messages, options } = chatRequestSchema.parse(
       await req.json(),

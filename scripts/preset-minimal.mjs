@@ -21,6 +21,16 @@ const APPLY = process.argv.includes("--apply")
 const REMOVE = [
   "src/features/auth",
   "src/features/audit",
+  "src/features/billing",
+  "src/app/(app)/billing",
+  "src/app/api/billing",
+  "src/app/api/webhooks",
+  "src/infrastructure/stripe",
+  "src/core/domain/subscription.entity.ts",
+  "src/core/ports/payment-gateway.port.ts",
+  "src/core/ports/subscription-repository.port.ts",
+  "src/core/ports/webhook-event-repository.port.ts",
+  ".cursor/skills/payments",
   "src/app/(auth)",
   "src/app/(app)/audit",
   "src/app/api/auth",
@@ -57,6 +67,7 @@ const REMOVE = [
 
 /** Dependencies only the removed code needed. */
 const DROP_DEPENDENCIES = [
+  "stripe",
   "next-auth",
   "@auth/core",
   "@auth/drizzle-adapter",
@@ -129,11 +140,29 @@ async function patchPackageJson(apply) {
   return dropped
 }
 
+/**
+ * A removed source file takes its colocated test with it. Tests live next to
+ * the code they cover, so deleting `x.ts` and leaving `x.spec.ts` produces a
+ * spec that imports a module which no longer exists — which is exactly what
+ * happened the first time this script ran against the billing entity.
+ */
+function withColocatedSpecs(paths) {
+  const out = []
+  for (const path of paths) {
+    out.push(path)
+    const match = /^(.*)\.(ts|tsx)$/.exec(path)
+    if (match && !path.includes(".spec.")) {
+      out.push(`${match[1]}.spec.ts`, `${match[1]}.spec.tsx`)
+    }
+  }
+  return out
+}
+
 async function main() {
   const replacements = await replacementFiles("presets/minimal")
   const present = []
 
-  for (const path of REMOVE) {
+  for (const path of withColocatedSpecs(REMOVE)) {
     if (await exists(path)) present.push(path)
   }
 

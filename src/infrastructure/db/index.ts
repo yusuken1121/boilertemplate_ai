@@ -19,6 +19,14 @@ export {
 } from "./drizzle-password-reset.repository"
 export { DrizzleUnitOfWork, createUnitOfWork } from "./drizzle-unit-of-work"
 export {
+  DrizzleSubscriptionRepository,
+  createSubscriptionRepository,
+} from "./drizzle-subscription.repository"
+export {
+  DrizzleWebhookEventRepository,
+  createWebhookEventRepository,
+} from "./drizzle-webhook-event.repository"
+export {
   DrizzleFeatureFlags,
   createFeatureFlags,
 } from "./drizzle-feature-flags"

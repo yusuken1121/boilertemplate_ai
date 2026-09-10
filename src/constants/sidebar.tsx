@@ -1,4 +1,5 @@
 import {
+  CreditCard,
   LogOutIcon,
   Mail,
   MessageSquare,
@@ -13,6 +14,7 @@ export const MENU_KEYS = {
   CHAT: "chat",
   CONTACT: "contact",
   SETTINGS: "settings",
+  BILLING: "billing",
   AUDIT: "audit",
   LOGOUT: "logout",
 } as const
@@ -58,6 +60,12 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
     path: PATH.SETTINGS,
     icon: Settings,
   },
+  [MENU_KEYS.BILLING]: {
+    label: "Billing",
+    path: PATH.BILLING,
+    icon: CreditCard,
+    activeColor: "text-violet-600 dark:text-violet-400",
+  },
   [MENU_KEYS.AUDIT]: {
     label: "Audit log",
     path: PATH.AUDIT,
@@ -73,7 +81,7 @@ export const SIDEBAR_CONFIG: Record<MenuKey, SidebarItemConfig> = {
 }
 
 export const mainSidebar: MenuKey[] = [MENU_KEYS.CHAT, MENU_KEYS.CONTACT]
-export const manageSidebar: MenuKey[] = [MENU_KEYS.SETTINGS]
+export const manageSidebar: MenuKey[] = [MENU_KEYS.BILLING, MENU_KEYS.SETTINGS]
 /** Items here are filtered by `roles` — see SidebarItemConfig. */
 export const adminSidebar: MenuKey[] = [MENU_KEYS.AUDIT]
 export const footerSidebar: MenuKey[] = [MENU_KEYS.LOGOUT]

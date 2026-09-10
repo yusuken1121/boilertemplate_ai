@@ -2,13 +2,17 @@ import type { IUnitOfWork, Repositories } from "@/core/ports/unit-of-work.port"
 import { getDb, type DbExecutor } from "./client"
 import { DrizzleAuditLogRepository } from "./drizzle-audit-log.repository"
 import { DrizzlePasswordResetTokenRepository } from "./drizzle-password-reset.repository"
+import { DrizzleSubscriptionRepository } from "./drizzle-subscription.repository"
 import { DrizzleUserRepository } from "./drizzle-user.repository"
+import { DrizzleWebhookEventRepository } from "./drizzle-webhook-event.repository"
 
 function buildRepositories(db: DbExecutor): Repositories {
   return {
     users: new DrizzleUserRepository(db),
     auditLog: new DrizzleAuditLogRepository(db),
     passwordResetTokens: new DrizzlePasswordResetTokenRepository(db),
+    subscriptions: new DrizzleSubscriptionRepository(db),
+    webhookEvents: new DrizzleWebhookEventRepository(db),
   }
 }
 

@@ -70,11 +70,12 @@ src/
 │   ├── gemini/  anthropic/      # IAIGateway
 │   ├── notion/                  # INotionRecordWriter
 │   ├── db/                      # repositories · unit of work · queue · flags
+│   ├── stripe/                  # IPaymentGateway
 │   ├── auth/                    # IPasswordHasher (scrypt)
 │   ├── email/  storage/         # IEmailSender · IFileStorage
 │   └── logging/  rate-limit/    # pino · Upstash Redis
 ├── features/            # Vertical slices — delete a folder to remove the feature
-│   ├── auth/  audit/  chat/  contact/
+│   ├── auth/  audit/  billing/  chat/  contact/
 ├── components/          # Shared UI (shadcn/ui in components/ui)
 ├── constants/           # App config, routes, sidebar, form labels
 ├── lib/                 # HTTP client, env, logger, request context, rate limit
@@ -108,6 +109,7 @@ All architecture rules, patterns, and workflows are defined in [`.cursor/skills/
 | [project-setup](.cursor/skills/project-setup/SKILL.md)                               | Installing, configuring env vars, running dev/test        |
 | [authentication](.cursor/skills/authentication/SKILL.md)                             | Protecting a route, reading the user, adding a provider   |
 | [database](.cursor/skills/database/SKILL.md)                                         | Adding a table, writing a query, transactions             |
+| [payments](.cursor/skills/payments/SKILL.md)                                         | Plans, checkout, the Stripe webhook, entitlements         |
 | [notion-as-database](.cursor/skills/notion-as-database/SKILL.md)                     | Using Notion as the datastore, and what it cannot do      |
 | [observability](.cursor/skills/observability/SKILL.md)                               | Logging, request correlation, health checks               |
 | [background-jobs](.cursor/skills/background-jobs/SKILL.md)                           | Moving slow work out of a request, adding a job type      |
@@ -183,7 +185,7 @@ version, so CI and every developer resolve identically.
 
 ## Tech Stack
 
-Next.js 15 · TypeScript · React Query · Auth.js v5 · Drizzle + Postgres · Gemini · Anthropic · Notion · Resend · S3/R2 · pino · Upstash · shadcn/ui · Tailwind v4 · Vitest · Playwright · pnpm
+Next.js 15 · TypeScript · React Query · Auth.js v5 · Drizzle + Postgres · Stripe · Gemini · Anthropic · Notion · Resend · S3/R2 · pino · Upstash · shadcn/ui · Tailwind v4 · Vitest · Playwright · pnpm
 
 ## Adding a Feature (Checklist)
 

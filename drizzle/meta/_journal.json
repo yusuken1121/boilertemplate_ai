@@ -15,6 +15,13 @@
       "when": 1788828674367,
       "tag": "0001_amusing_bromley",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788877781644,
+      "tag": "0002_wild_tarantula",
+      "breakpoints": true
     }
   ]
 }

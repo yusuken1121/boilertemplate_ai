@@ -32,6 +32,9 @@ const serverEnvSchema = z.object({
   /** Shared rate limiting. Unset falls back to the in-memory limiter. */
   UPSTASH_REDIS_REST_URL: z.string().min(1),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  /** Billing — Stripe. The webhook secret is per endpoint; `stripe listen` prints a local one. */
+  STRIPE_SECRET_KEY: z.string().min(1),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1),
   /** Object storage (S3 / R2 / MinIO) */
   S3_BUCKET: z.string().min(1),
   S3_ACCESS_KEY_ID: z.string().min(1),

@@ -12,6 +12,10 @@ export const AUDIT_ACTIONS = {
   PASSWORD_RESET_COMPLETED: "auth.password_reset.completed",
   CONTACT_SUBMITTED: "contact.submitted",
   CHAT_MESSAGE_SENT: "chat.message_sent",
+  BILLING_CHECKOUT_STARTED: "billing.checkout.started",
+  BILLING_SUBSCRIPTION_CHANGED: "billing.subscription.changed",
+  BILLING_SUBSCRIPTION_DELETED: "billing.subscription.deleted",
+  BILLING_PAYMENT_FAILED: "billing.payment.failed",
 } as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS]
