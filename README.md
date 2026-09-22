@@ -130,7 +130,10 @@ Cursor always-applied rules: [`.cursor/rules/code-rules.mdc`](.cursor/rules/code
 
 ## Learning Guide
 
-Beginner-friendly walkthrough (Japanese): [docs/beginner-architecture-guide.md](docs/beginner-architecture-guide.md)
+Japanese reading, shortest first:
+
+1. Mobile-friendly overview: [docs/design-overview.md](docs/design-overview.md)
+2. Code walkthrough: [docs/beginner-architecture-guide.md](docs/beginner-architecture-guide.md)
 
 ## Quick Start
 
