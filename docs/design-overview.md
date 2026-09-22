@@ -385,10 +385,12 @@ README は入り口だけ。
 動かしてから細部へ。
 
 1. この読み物で地図を持つ
-2. Chat 送信を Network タブで見る
-3. コード追いは
+2. 次に何を持っていくかは
+   [what-to-copy.md](./what-to-copy.md)
+3. Chat 送信を Network タブで見る
+4. コード追いは
    [beginner-architecture-guide.md](./beginner-architecture-guide.md)
-4. 手を入れる前に
+5. 手を入れる前に
    [architectural-rules](../.cursor/skills/architectural-rules/SKILL.md)
 
 覚えるのはこの3つで足りる。
